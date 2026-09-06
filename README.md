@@ -107,7 +107,31 @@ Defined in `packages/talmud/src/lib/daf-render/layout-constants.ts`:
 
 **In place:** three-column tzurat hadaf engine, amud-dependent float sides, Mekorot fonts, incipit drop cap, hadran blocks, Vilna page frame, Hebrew folio header.
 
-**Honest gaps (not yet implemented):**
+### Run the daf-identity check
+
+Unit tests (fixtures + normalization, no network):
+
+```bash
+pnpm --filter talmud test tests/daf-identity.test.ts
+```
+
+Live cross-source verification against HebrewBooks + Sefaria (network):
+
+```bash
+# Entire Berakhot (127 amudim — ~15s with rate limiting)
+pnpm --filter talmud verify:daf-identity -- --tractate Berakhot
+
+# Every tractate at 2a + 2b (74 amudim)
+pnpm --filter talmud verify:daf-identity:sample
+
+# Sub-range
+node packages/talmud/scripts/verify-daf-identity.mjs --tractate Berakhot --from 2a --to 5b
+```
+
+The check verifies: valid page ref, non-empty Gemara column, main ≠ commentary columns, HB main opening matches Sefaria segment 0, consecutive amudim differ (full-tractate mode).
+
+**Coverage limits:** Shekalim may fail Sefaria alignment (no Bavli text in Sefaria). The live script does not validate layout/CSS — only content identity. Full Shas live scan is intentionally manual (use `--tractate` per masekhet).
+
 
 - Ein Mishpat / Mesorat HaShas / Or HaChaim **margin reference numbers** (data not wired into layout)
 - Pixel-perfect match to a scanned Vilna PDF (line breaks differ by edition and viewport)

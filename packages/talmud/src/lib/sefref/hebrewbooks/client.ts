@@ -68,7 +68,8 @@ export function convertDafToHebrewBooksFormat(daf: string): string {
  * and "{n}b" for B-pages (e.g. daf=2 → 2a, daf=2b → 2b, daf=3 → 3a).
  */
 export function sefariaPageToHebrewBooksDaf(page: string): string {
-  return page.replace(/a$/i, '');
+  const normalized = page.trim().toLowerCase();
+  return normalized.replace(/a$/, '');
 }
 
 export interface HebrewBooksDaf {

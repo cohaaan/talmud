@@ -11,6 +11,8 @@
  * Sefaria's reported `schema.lengths[0] = 127` for that tractate.
  */
 
+import { normalizePageRef } from '../daf-identity/page-ref';
+
 const START_AMUD = '2a' as const;
 
 /**
@@ -136,9 +138,11 @@ export function isValidAmud(tractate: string, page: string): boolean {
  */
 export function clampAmud(tractate: string, page: string): string {
   const end = TRACTATE_END_AMUD[tractate.toLowerCase()];
-  if (!end) return page;
-  const cur = amudToNumber(page.trim());
+  const normalized = normalizePageRef(page);
+  if (!end) return normalized ?? page.trim();
+  const cur = amudToNumber(normalized ?? page.trim());
   const endNum = amudToNumber(end);
-  if (cur == null || endNum == null) return page;
-  return cur > endNum ? end : page.trim();
+  if (cur == null || endNum == null) return normalized ?? page.trim();
+  if (cur > endNum) return end;
+  return normalized ?? page.trim();
 }

@@ -19,6 +19,7 @@ import {
 import type { DafGeoModel } from '../lib/geographyModel';
 import type { TalmudPageData } from '../lib/sefref';
 import { clampAmud, dafRefHe, TRACTATE_OPTIONS } from '../lib/sefref';
+import { normalizePageRef, parsePageRef } from '../lib/daf-identity/page-ref';
 import { conceptToTerm, glossaryForDaf, type Term } from '../lib/terms/registry';
 import {
   ArgumentSidebar,
@@ -115,13 +116,13 @@ interface Ref {
 }
 
 function parsePage(raw: string): { num: number; amud: 'a' | 'b' } {
-  const m = raw.match(/^(\d+)([ab])$/i);
-  if (!m) return { num: 2, amud: 'a' };
-  return { num: parseInt(m[1], 10), amud: m[2].toLowerCase() as 'a' | 'b' };
+  const parsed = parsePageRef(raw);
+  if (!parsed) return { num: 2, amud: 'a' };
+  return { num: parsed.daf, amud: parsed.amud };
 }
 
 function formatPage(num: number, amud: 'a' | 'b'): string {
-  return `${num}${amud}`;
+  return normalizePageRef(`${num}${amud}`) ?? `${num}${amud}`;
 }
 
 function nextPage(p: string): string {

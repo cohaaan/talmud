@@ -22,6 +22,8 @@
     "build-rabbi-orientation": "node scripts/build-rabbi-orientation.mjs",
     "warm:brachot": "node scripts/warm-brachot-analyze.mjs",
     "warm:brachot:dry": "node scripts/warm-brachot-analyze.mjs --dry-run",
+    "verify:daf-identity": "node scripts/verify-daf-identity.mjs",
+    "verify:daf-identity:sample": "node scripts/verify-daf-identity.mjs --sample",
     "warm:skeleton:shas": "node scripts/warm-skeleton-shas.mjs"
   },
   "dependencies": {

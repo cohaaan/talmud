@@ -87,6 +87,7 @@ import { adjacentAmud, sefariaAPI, type TalmudPageData, TRACTATE_OPTIONS } from 
 import { isValidAmud, iterAmudim, TRACTATE_END_AMUD } from '../lib/sefref/amudim';
 import { getDafyomiMasechet } from '../lib/sefref/dafyomi/masechtos';
 import { fetchHebrewBooksDaf } from '../lib/sefref/hebrewbooks/client';
+import { normalizePageRef } from '../lib/daf-identity/page-ref';
 import { estimateShasCost } from '../lib/shasCost';
 import {
   type BridgeSection,
@@ -7891,7 +7892,11 @@ app.post('/api/context/match', async (c) => {
 
 app.get('/api/daf/:tractate/:page', async (c) => {
   const tractate = c.req.param('tractate');
-  const page = c.req.param('page');
+  const pageRaw = c.req.param('page');
+  const page = normalizePageRef(pageRaw);
+  if (!page || !isValidAmud(tractate, page)) {
+    return c.json({ error: `Invalid daf ref: ${tractate} ${pageRaw}` }, 400);
+  }
   const source = c.req.query('source');
   const cache = c.env.CACHE;
 

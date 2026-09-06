@@ -62,6 +62,10 @@ describe('clampAmud', () => {
     expect(clampAmud('Megillah', 'abc')).toBe('abc');
     expect(clampAmud('Bava Nonexistent', '99a')).toBe('99a');
   });
+
+  it('normalizes uppercase amud before clamping', () => {
+    expect(clampAmud('Megillah', '2B')).toBe('2b');
+  });
 });
 
 // Sefaria answers an unresolvable ref with a 200 whose body is an error
