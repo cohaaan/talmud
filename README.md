@@ -70,3 +70,47 @@ pnpm build
 ```
 
 Production deploys automatically after a change is merged to `master` and passes CI.
+
+## Vilna daf layout
+
+The reader renders each amud as a **Tzurat HaDaf** page — Gemara in the center, Rashi and Tosafot in the side columns, with commentary wrapping around the main text the way a printed Vilna folio does.
+
+### Preview locally
+
+```bash
+pnpm exec wrangler login   # once, for remote dev bindings
+pnpm dev                   # opens the Talmud reader (default daf: Berakhot 2a)
+```
+
+Open `http://localhost:5173/#daf` (or the port Vite prints). The daf sits inside a **printed-page frame** (cream paper, double rule, Hebrew tractate header, marginal folio mark). Study aids (gutter icons, sidebar cards, highlights) float beside or over the page without breaking the silhouette.
+
+### Typography & fonts
+
+| Role | Font | Source |
+| --- | --- | --- |
+| Gemara (center) | Mekorot Vilna | [Mekorot](https://hebrewbooks.org/) digitization of the Vilna Shas typeface (bundled under `packages/talmud/static/fonts/`) |
+| Rashi / Tosafot | Mekorot Rashi | same project |
+| Text HTML | HebrewBooks scrape | Preserves `.gdropcap`, `.shastitle4`/`7`, `.five`, `.mareimakom`, `.ghadran` from the printed page markup |
+| Segmentation & English | Sefaria API | [CC-BY](https://www.sefaria.org/terms) |
+
+Tosafot uses the Rashi face at a slightly tighter size/rhythm to mirror print hierarchy. Cross-reference parentheticals (`.mareimakom`) render smaller and muted.
+
+### Layout constants
+
+Defined in `packages/talmud/src/lib/daf-render/layout-constants.ts`:
+
+- **560px** text block width (`VILNA_TEXT_WIDTH`) — closer to a folio text area than the previous 520px cap
+- **47%** center column (`VILNA_MAIN_WIDTH`) — classic Vilna proportions
+- RTL throughout the daf surface; the frame and app chrome respect UI language direction separately
+
+### Fidelity vs print / Mercava
+
+**In place:** three-column tzurat hadaf engine, amud-dependent float sides, Mekorot fonts, incipit drop cap, hadran blocks, Vilna page frame, Hebrew folio header.
+
+**Honest gaps (not yet implemented):**
+
+- Ein Mishpat / Mesorat HaShas / Or HaChaim **margin reference numbers** (data not wired into layout)
+- Pixel-perfect match to a scanned Vilna PDF (line breaks differ by edition and viewport)
+- Running **perek** headers in the print style (chapter boundaries are marked via hadran, not full running heads)
+- Separate Tosafot **display typeface** (both commentaries share Mekorot Rashi; print editions differ more in size than face)
+- Full **folio back** (amud ב of a two-sided spread is rendered alone, as in most digital readers)

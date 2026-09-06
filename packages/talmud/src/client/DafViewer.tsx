@@ -11,6 +11,11 @@ import {
 } from 'solid-js';
 import { dedupeBy, partitionSections } from '../lib/argumentMoves';
 import { DafRenderer } from '../lib/daf-render';
+import {
+  VILNA_FRAME_WIDTH,
+  VILNA_MAIN_WIDTH,
+  VILNA_TEXT_WIDTH,
+} from '../lib/daf-render/layout-constants';
 import type { DafGeoModel } from '../lib/geographyModel';
 import type { TalmudPageData } from '../lib/sefref';
 import { clampAmud, dafRefHe, TRACTATE_OPTIONS } from '../lib/sefref';
@@ -34,6 +39,7 @@ import ChecksPanel from './ChecksPanel';
 import type { CommentaryComment, CommentaryWork } from './CommentaryPicker';
 import { type CommentaryAnchorIndex, fetchCommentaryAnchorIndex } from './commentaryAnchorIndex';
 import DafLoadProgress from './DafLoadProgress';
+import { DafPageFrame } from './DafPageFrame';
 import { readDevMode, setDevModeActive } from './DevModeShelf';
 import { cancelPrefetch, prefetchDaf } from './dafPrefetch';
 import { setDafRunsTarget } from './dafRunsStore';
@@ -424,7 +430,7 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
   const [active, setActive] = createSignal<ActiveWord | null>(null);
 
   // Daf sizing. On desktop, scale down for narrow viewports; on phones the
-  // daf stays at full 520px and the wrapping .daf-surface scrolls
+  // daf stays at full VILNA_TEXT_WIDTH and the wrapping .daf-surface scrolls
   // horizontally (with browser pinch-zoom) so the traditional Tzurat
   // HaDaf layout is preserved verbatim.
   // 16px main padding × 2 + 12px edge-icon slack × 2 = 56px clearance so
@@ -436,11 +442,11 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
     onCleanup(() => window.removeEventListener('resize', onResize));
   });
   const dafWidth = () => {
-    if (viewportW() <= 767) return 520;
-    return Math.min(520, Math.max(280, viewportW() - 56));
+    if (viewportW() <= 767) return VILNA_TEXT_WIDTH;
+    return Math.min(VILNA_TEXT_WIDTH, Math.max(280, viewportW() - 56));
   };
 
-  // Mobile fit-to-width: the daf is rendered at its sacred 520px and then
+  // Mobile fit-to-width: the daf is rendered at its sacred VILNA_TEXT_WIDTH and then
   // visually scaled down (CSS transform) so the whole page fits on load —
   // the user pinch-zooms in from there. Desktop reflows via dafWidth instead,
   // so scale stays 1. `surfaceW` is the measured available width of the
@@ -459,7 +465,7 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
     if (viewportW() > 767) return 1;
     const w = surfaceW();
     if (w <= 0) return 1;
-    return Math.min(1, w / 520);
+    return Math.min(1, w / VILNA_FRAME_WIDTH);
   };
   let surfaceEl: HTMLDivElement | undefined;
   onMount(() => {
@@ -2585,7 +2591,7 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
     return loc.slice(4) as GenerationId;
   });
 
-  // sidePercent = (1 - mainWidth) / 2 * 100. With mainWidth 0.48, that's 26%.
+  // sidePercent = (1 - mainWidth) / 2 * 100. With mainWidth 0.47, that's 26.5%.
   // The actual visible gap between the commentary text column and the main
   // text is the `.daf-main .daf-inner-mid` spacer's 8px margin-right (and the
   // mirror on the outer side). Shift icons inward by half of that (+4px) so
@@ -2595,7 +2601,7 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
   // (top start spacer or bottom end spacer) where main text runs
   // edge-to-edge — the icon moves out past the text to sit at the daf
   // margin instead of overlapping the words.
-  const SIDE_PCT = ((1 - 0.48) / 2) * 100;
+  const SIDE_PCT = ((1 - VILNA_MAIN_WIDTH) / 2) * 100;
   const ARG_X = `calc(${SIDE_PCT}% + 8px)`;
   const HALACHA_X = `calc(${100 - SIDE_PCT}% - 8px)`;
   const ARG_EDGE_X = '-10px';
@@ -3707,7 +3713,7 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
                     style={
                       dafScale() < 1
                         ? {
-                            width: `${Math.round(520 * dafScale())}px`,
+                            width: `${Math.round(VILNA_FRAME_WIDTH * dafScale())}px`,
                             height:
                               dafNaturalH() > 0
                                 ? `${Math.round(dafNaturalH() * dafScale())}px`
@@ -3722,34 +3728,36 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
                         dafScale() < 1
                           ? {
                               position: 'relative',
-                              width: '520px',
+                              width: `${VILNA_FRAME_WIDTH}px`,
                               transform: `scale(${dafScale()})`,
                               'transform-origin': 'top left',
                             }
                           : { position: 'relative' }
                       }
                     >
-                      <DafRenderer
-                        main={t.main}
-                        inner={t.inner}
-                        outer={t.outer}
-                        amud={pageAmud()}
-                        options={{ contentWidth: dafWidth(), mainWidth: 0.48 }}
-                        onLayout={(r) => {
-                          // Surface layout/spacer computation timing in the dev
-                          // renderer panel. The layout case + exception come from
-                          // the spacer engine; useful for debugging the rare
-                          // pages that hit a non-default layout case.
-                          recordStage(
-                            'layout-spacers',
-                            'Layout / spacers',
-                            Math.round(r.computeMs),
-                            {
-                              detail: `case=${r.spacers.layoutCase} · exc=${r.spacers.exception} · h=${Math.round(r.totalHeight)}px`,
-                            },
-                          );
-                        }}
-                      />
+                      <DafPageFrame tractate={tractate()} page={page()} amud={pageAmud()}>
+                        <DafRenderer
+                          main={t.main}
+                          inner={t.inner}
+                          outer={t.outer}
+                          amud={pageAmud()}
+                          options={{ contentWidth: dafWidth(), mainWidth: VILNA_MAIN_WIDTH }}
+                          onLayout={(r) => {
+                            // Surface layout/spacer computation timing in the dev
+                            // renderer panel. The layout case + exception come from
+                            // the spacer engine; useful for debugging the rare
+                            // pages that hit a non-default layout case.
+                            recordStage(
+                              'layout-spacers',
+                              'Layout / spacers',
+                              Math.round(r.computeMs),
+                              {
+                                detail: `case=${r.spacers.layoutCase} · exc=${r.spacers.exception} · h=${Math.round(r.totalHeight)}px`,
+                              },
+                            );
+                          }}
+                        />
+                      </DafPageFrame>
                       {/* Per-kind measurement instances — each publishes its anchor
                   positions to the shared gutterStack. The single
                   GutterOverlay below renders all clusters with collision-

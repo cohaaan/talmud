@@ -25,10 +25,10 @@ if (typeof document !== 'undefined') {
   // Explicitly loading by name forces the browser to fetch those specific
   // fonts at representative sizes, and only flips fontsReady once all are in.
   const fontPromises = [
-    '15px "Mekorot Vilna"',
-    '10.5px "Mekorot Rashi"',
-    '700 15px "Mekorot Vilna"',
-    '10.5px "Mekorot Vilna"',
+    '16px "Mekorot Vilna"',
+    '11px "Mekorot Rashi"',
+    '700 16px "Mekorot Vilna"',
+    '11px "Mekorot Vilna"',
   ].map((spec) => document.fonts.load(spec).catch(() => null));
   Promise.all(fontPromises)
     .then(() => document.fonts.ready)
@@ -122,31 +122,6 @@ export function DafRenderer(props: DafRendererProps): JSX.Element {
   });
 
   let rootRef: HTMLDivElement | undefined;
-
-  createEffect(() => {
-    if (!layout() || !rootRef) return;
-    queueMicrotask(() => {
-      if (!rootRef) return;
-      const q = (sel: string) => rootRef!.querySelector(sel) as HTMLElement | null;
-      const h = (el: HTMLElement | null) =>
-        el ? Math.round(el.getBoundingClientRect().height) : 0;
-      const spans = {
-        main: h(q('.daf-main .daf-text span')),
-        inner: h(q('.daf-inner .daf-text span')),
-        outer: h(q('.daf-outer .daf-text span')),
-      };
-      const spacers = {
-        'main-start': h(q('.daf-main .daf-start')),
-        'main-inner-mid': h(q('.daf-main .daf-inner-mid')),
-        'main-outer-mid': h(q('.daf-main .daf-outer-mid')),
-        'inner-mid': h(q('.daf-inner .daf-mid')),
-        'outer-mid': h(q('.daf-outer .daf-mid')),
-        'inner-end': h(q('.daf-inner .daf-end')),
-        'outer-end': h(q('.daf-outer .daf-end')),
-      };
-      console.log('[daf-render DOM] spans:', spans, 'spacers:', spacers);
-    });
-  });
 
   return (
     <div class="daf-root" style={rootStyle()} ref={rootRef}>
