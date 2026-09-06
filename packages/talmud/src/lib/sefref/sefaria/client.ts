@@ -52,6 +52,8 @@ export interface TalmudPageData {
     hebrew: string;
     english: string;
   };
+  /** Running perek header from Sefaria chapter index + Mishnah anchors. */
+  perekHeader?: { perekNum: number; nameHe: string } | null;
   rashi?: {
     hebrew: string;
     english: string;

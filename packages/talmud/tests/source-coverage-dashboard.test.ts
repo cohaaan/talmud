@@ -75,6 +75,10 @@ const CLASSIFICATION: Record<string, Classification> = {
     role: 'not-source',
     note: 'raw Sefaria segments — rolled into the gemara row',
   },
+  keyForPerekName: {
+    role: 'not-source',
+    note: 'Sefaria chapter name per tractate+perek — warmed from segment alts',
+  },
 
   // --- Derived per-daf computations (not a fetched source) ------------------
   keyForMesorah: {

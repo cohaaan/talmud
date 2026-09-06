@@ -16,6 +16,7 @@ import {
   VILNA_MAIN_WIDTH,
   VILNA_TEXT_WIDTH,
 } from '../lib/daf-render/layout-constants';
+import type { LayoutResult } from '../lib/daf-render';
 import type { DafGeoModel } from '../lib/geographyModel';
 import type { TalmudPageData } from '../lib/sefref';
 import { clampAmud, dafRefHe, TRACTATE_OPTIONS } from '../lib/sefref';
@@ -79,6 +80,7 @@ import { TranslationPopup } from './TranslationPopup';
 import { TutorialBanner } from './TutorialBanner';
 import TypeProfilePanel from './TypeProfilePanel';
 import { tokenizeHebrewHtml } from './tokenize';
+import { tokenizeDafPreview } from './tokenizeDafPreview';
 import {
   hasCompletedTutorial,
   hasDismissedBanner,
@@ -349,6 +351,9 @@ const CHART_KEY = 'daf.toggle.chart';
 const AGGADATOT_KEY = 'daf.toggle.aggadatot';
 const YERUSHALMI_KEY = 'daf.toggle.yerushalmi';
 const PESUKIM_KEY = 'daf.toggle.pesukim';
+const SPREAD_KEY = 'daf.spreadView';
+/** Gap between spread panes (px); must match `.daf-spread { gap }`. */
+const SPREAD_GAP = 12;
 function loadToggle(key: string, def: boolean): boolean {
   if (typeof localStorage === 'undefined') return def;
   const v = localStorage.getItem(key);
@@ -462,11 +467,16 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
     typeof window !== 'undefined' && window.innerWidth <= 767 ? window.innerWidth - 24 : 0,
   );
   const [dafNaturalH, setDafNaturalH] = createSignal(0);
+  const spreadFrameWidth = () => 2 * VILNA_FRAME_WIDTH + SPREAD_GAP;
   const dafScale = () => {
-    if (viewportW() > 767) return 1;
     const w = surfaceW();
+    if (spreadView() && viewportW() > 767 && w > 0 && w < spreadFrameWidth()) {
+      return w / spreadFrameWidth();
+    }
+    if (viewportW() > 767) return 1;
     if (w <= 0) return 1;
-    return Math.min(1, w / VILNA_FRAME_WIDTH);
+    const targetW = spreadView() ? spreadFrameWidth() : VILNA_FRAME_WIDTH;
+    return Math.min(1, w / targetW);
   };
   let surfaceEl: HTMLDivElement | undefined;
   onMount(() => {
@@ -507,6 +517,16 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
   const [showAggadatot, setShowAggadatot] = createSignal(loadToggle(AGGADATOT_KEY, false));
   const [showYerushalmi, setShowYerushalmi] = createSignal(loadToggle(YERUSHALMI_KEY, false));
   const [showPesukim, setShowPesukim] = createSignal(loadToggle(PESUKIM_KEY, false));
+  const [spreadView, setSpreadView] = createSignal(loadToggle(SPREAD_KEY, false));
+  createEffect(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(SPREAD_KEY, String(spreadView()));
+    }
+  });
+  // Spread needs two columns — disable on mobile/narrow viewports.
+  createEffect(() => {
+    if (isMobile() && spreadView()) setSpreadView(false);
+  });
   // Dev shelf — bottom drawer with marks toggles + activity panels.
   const [devOpen, setDevOpen] = createSignal(readDevMode());
   // Dev tooling is desktop-only. On mobile force it off so a flag persisted from
@@ -2702,6 +2722,22 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
     go(formatPage(pageNum(), pageAmud() === 'a' ? 'b' : 'a'));
   };
 
+  const spreadActive = () => spreadView() && !isMobile();
+  const otherAmudRef = createMemo<Ref | null>(() => {
+    if (!spreadActive()) return null;
+    const other = pageAmud() === 'a' ? 'b' : 'a';
+    return { tractate: tractate(), page: formatPage(pageNum(), other) };
+  });
+  const [otherDaf] = createResource(otherAmudRef, (r) => (r ? fetchDaf(r) : Promise.resolve(null)));
+
+  const otherSpreadTokens = createMemo(() => {
+    if (!spreadActive() || otherDaf.loading) return null;
+    const d = otherDaf();
+    const r = otherAmudRef();
+    if (!d || !r) return null;
+    return tokenizeDafPreview(d, r.page);
+  });
+
   // The tutorial coach's note steps open a real note — an argument, a halacha,
   // or the whole-daf Overview (a side panel on desktop, a drawer on mobile) —
   // and close it again when a non-note step is shown or the tour ends.
@@ -3515,6 +3551,17 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
           <button type="button" class="tb-amud" onClick={toggleAmud} title={t('header.amud.title')}>
             {pageAmud()}
           </button>
+          <Show when={!isMobile()}>
+            <button
+              type="button"
+              class="tb-toggle"
+              classList={{ 'is-active': spreadView() }}
+              onClick={() => setSpreadView((v) => !v)}
+              title={t('header.spread.title')}
+            >
+              {t('header.spread')}
+            </button>
+          </Show>
           <button
             type="button"
             class="tb-navbtn"
@@ -3708,61 +3755,29 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
                 }
                 keyed
               >
-                {(t) => (
-                  <div
-                    class="daf-scale-wrap"
-                    style={
-                      dafScale() < 1
-                        ? {
-                            width: `${Math.round(VILNA_FRAME_WIDTH * dafScale())}px`,
-                            height:
-                              dafNaturalH() > 0
-                                ? `${Math.round(dafNaturalH() * dafScale())}px`
-                                : undefined,
-                          }
-                        : {}
-                    }
-                  >
-                    <div
-                      ref={setDafRootEl as (el: HTMLDivElement) => void}
-                      style={
-                        dafScale() < 1
-                          ? {
-                              position: 'relative',
-                              width: `${VILNA_FRAME_WIDTH}px`,
-                              transform: `scale(${dafScale()})`,
-                              'transform-origin': 'top left',
-                            }
-                          : { position: 'relative' }
-                      }
-                    >
-                      <DafPageFrame tractate={tractate()} page={page()} amud={pageAmud()}>
-                        <DafRenderer
-                          main={t.main}
-                          inner={t.inner}
-                          outer={t.outer}
-                          amud={pageAmud()}
-                          options={{ contentWidth: dafWidth(), mainWidth: VILNA_MAIN_WIDTH }}
-                          onLayout={(r) => {
-                            // Surface layout/spacer computation timing in the dev
-                            // renderer panel. The layout case + exception come from
-                            // the spacer engine; useful for debugging the rare
-                            // pages that hit a non-default layout case.
-                            recordStage(
-                              'layout-spacers',
-                              'Layout / spacers',
-                              Math.round(r.computeMs),
-                              {
-                                detail: `case=${r.spacers.layoutCase} · exc=${r.spacers.exception} · h=${Math.round(r.totalHeight)}px`,
-                              },
-                            );
-                          }}
-                        />
-                      </DafPageFrame>
-                      {/* Per-kind measurement instances — each publishes its anchor
-                  positions to the shared gutterStack. The single
-                  GutterOverlay below renders all clusters with collision-
-                  aware stacking + hover-expand. */}
+                {(t) => {
+                  const layoutOpts = {
+                    contentWidth: dafWidth(),
+                    mainWidth: VILNA_MAIN_WIDTH,
+                  };
+                  const onDafLayout = (r: LayoutResult) => {
+                    recordStage('layout-spacers', 'Layout / spacers', Math.round(r.computeMs), {
+                      detail: `case=${r.spacers.layoutCase} · exc=${r.spacers.exception} · h=${Math.round(r.totalHeight)}px`,
+                    });
+                  };
+                  const frameW = spreadActive() ? spreadFrameWidth() : VILNA_FRAME_WIDTH;
+                  const scaleStyle =
+                    dafScale() < 1
+                      ? {
+                          position: 'relative' as const,
+                          width: `${frameW}px`,
+                          transform: `scale(${dafScale()})`,
+                          'transform-origin': 'top left',
+                        }
+                      : { position: 'relative' as const };
+
+                  const gutterCluster = (
+                    <>
                       <Show when={showArguments()}>
                         <GutterIcons
                           containerRef={dafRootEl}
@@ -3827,9 +3842,111 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
                         />
                       </Show>
                       <GutterOverlay />
+                    </>
+                  );
+
+                  const spreadPane = (amud: 'a' | 'b') => {
+                    const active = pageAmud() === amud;
+                    const pageStr = formatPage(pageNum(), amud);
+                    const tokens = active ? t : otherSpreadTokens();
+                    const perek = active ? daf()?.perekHeader : otherDaf()?.perekHeader;
+                    return (
+                      <div
+                        class="daf-spread__page"
+                        classList={{ 'is-active': active }}
+                        onClick={() => {
+                          if (!active) go(pageStr);
+                        }}
+                      >
+                        <Show
+                          when={tokens}
+                          fallback={
+                            <p class="daf-spread__loading">
+                              {otherDaf.error
+                                ? `Error: ${String(otherDaf.error)}`
+                                : 'Opening the daf…'}
+                            </p>
+                          }
+                        >
+                          {(tok) => (
+                            <div
+                              ref={active ? (setDafRootEl as (el: HTMLDivElement) => void) : undefined}
+                              style={scaleStyle}
+                            >
+                              <DafPageFrame
+                                tractate={tractate()}
+                                page={pageStr}
+                                amud={amud}
+                                perekHeader={perek}
+                              >
+                                <DafRenderer
+                                  main={tok().main}
+                                  inner={tok().inner}
+                                  outer={tok().outer}
+                                  amud={amud}
+                                  options={layoutOpts}
+                                  onLayout={onDafLayout}
+                                />
+                              </DafPageFrame>
+                              <Show when={active}>{gutterCluster}</Show>
+                            </div>
+                          )}
+                        </Show>
+                      </div>
+                    );
+                  };
+
+                  return (
+                    <div
+                      class="daf-scale-wrap"
+                      style={
+                        dafScale() < 1
+                          ? {
+                              width: `${Math.round(frameW * dafScale())}px`,
+                              height:
+                                dafNaturalH() > 0
+                                  ? `${Math.round(dafNaturalH() * dafScale())}px`
+                                  : undefined,
+                            }
+                          : {}
+                      }
+                    >
+                      <Show
+                        when={spreadActive()}
+                        fallback={
+                          <div
+                            ref={setDafRootEl as (el: HTMLDivElement) => void}
+                            style={scaleStyle}
+                          >
+                            <DafPageFrame
+                              tractate={tractate()}
+                              page={page()}
+                              amud={pageAmud()}
+                              perekHeader={daf()?.perekHeader}
+                            >
+                              <DafRenderer
+                                main={t.main}
+                                inner={t.inner}
+                                outer={t.outer}
+                                amud={pageAmud()}
+                                options={layoutOpts}
+                                onLayout={onDafLayout}
+                              />
+                            </DafPageFrame>
+                            {gutterCluster}
+                          </div>
+                        }
+                      >
+                        <div style={scaleStyle}>
+                          <div class="daf-spread">
+                            {spreadPane('a')}
+                            {spreadPane('b')}
+                          </div>
+                        </div>
+                      </Show>
                     </div>
-                  </div>
-                )}
+                  );
+                }}
               </Show>
             </div>
 

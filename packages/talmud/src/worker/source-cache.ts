@@ -30,6 +30,13 @@ import {
   type TalmudParallel,
   type YerushalmiBundle,
 } from '../lib/sefref';
+import { sanitizeHebrewBooksColumn } from '../lib/sefref/hebrewbooks/client';
+import type { PerekAlt, PerekHeader } from '../lib/sefref/perek';
+import {
+  parsePerekFromMishnaRef,
+  perekNamesToCache,
+  resolveRunningPerekHeader,
+} from '../lib/sefref/perek';
 import type { DafyomiDaf } from '../lib/sefref/dafyomi/schema';
 import {
   keyForCodeSources,
@@ -38,6 +45,7 @@ import {
   keyForHalachaRefs,
   keyForHebrewBooks,
   keyForMishnaBundle,
+  keyForPerekName,
   keyForRishonim,
   keyForSaCommentary,
   keyForSefariaBundle,
@@ -52,6 +60,13 @@ const TTL_NEGATIVE = 60 * 60;
 
 type FailedMarker = { __failed: true };
 
+function applyHbSanitize(data: HebrewBooksDaf): HebrewBooksDaf {
+  return {
+    ...data,
+    main: sanitizeHebrewBooksColumn(data.main),
+  };
+}
+
 /**
  * Optional per-call hit/miss reporter. Callers that care about KV cache state
  * (e.g. routes that emit an `x-cache` response header) pass `{ onCache: fn }`
@@ -64,6 +79,8 @@ export interface CacheTrack {
 export interface SefariaSegments {
   he: string[];
   en: string[];
+  /** Per-segment chapter markers from Sefaria (whole=true → perek boundary). */
+  alts?: Array<PerekAlt | null>;
 }
 
 async function readCache<T>(cache: KVNamespace | undefined, key: string): Promise<T | undefined> {
@@ -98,20 +115,18 @@ export async function getHebrewBooksDafCached(
   page: string,
   track?: CacheTrack,
 ): Promise<HebrewBooksDaf | null> {
-  // v2: extractShastext now bounds each column by its enclosing </fieldset>
-  // and tolerates HebrewBooks' malformed chapter-boundary markup (unclosed
-  // Gemara <div> at a perek end, stray leading </div> at a perek start). v1
-  // entries hold over-captured (perek-end) or empty (perek-start) Gemara, so
-  // bumping forces a refetch with the corrected extraction.
+  // v3: sanitizeHebrewBooksColumn on main (gdropcap glitch). v2: extractShastext
+  // fieldset bounds. Sanitize on read so prod v2 KV entries render clean without
+  // a full Shas rewarm — new fetches write v3 keys.
   const key = keyForHebrewBooks(tractate, page);
   const hit = await readCache<HebrewBooksDaf | FailedMarker>(cache, key);
   track?.onCache?.(hit ? 'hit' : 'miss');
   if (hit) {
     if ('__failed' in hit) return null;
-    return hit;
+    return applyHbSanitize(hit);
   }
   try {
-    const data = await fetchHebrewBooksDaf(tractate, page);
+    const data = applyHbSanitize(await fetchHebrewBooksDaf(tractate, page));
     await writeCache(cache, key, data, null);
     return data;
   } catch (err) {
@@ -522,6 +537,7 @@ export async function getSefariaSegmentsCached(
     if (!res.ok) return null;
     const j = (await res.json()) as {
       versions?: Array<{ actualLanguage?: string; language?: string; text?: unknown }>;
+      alts?: Array<PerekAlt | null>;
     };
     const vs = j.versions ?? [];
     const pick = (lang: string): string[] => {
@@ -533,6 +549,9 @@ export async function getSefariaSegmentsCached(
     const n = Math.min(out.he.length, out.en.length);
     out.he = out.he.slice(0, n);
     out.en = out.en.slice(0, n);
+    if (Array.isArray(j.alts)) {
+      out.alts = j.alts.slice(0, n).map((a) => (a && typeof a === 'object' ? a : null));
+    }
     if (cache && n > 0) {
       await cache.put(cacheKey, JSON.stringify(out), { expirationTtl: TTL_30_DAYS });
     }
@@ -540,4 +559,61 @@ export async function getSefariaSegmentsCached(
   } catch {
     return null;
   }
+}
+
+async function readPerekName(
+  cache: KVNamespace | undefined,
+  tractate: string,
+  perekNum: number,
+): Promise<string | null> {
+  if (!cache) return null;
+  return cache.get(keyForPerekName(tractate, perekNum));
+}
+
+async function writePerekName(
+  cache: KVNamespace | undefined,
+  tractate: string,
+  perekNum: number,
+  nameHe: string,
+): Promise<void> {
+  if (!cache || !nameHe) return;
+  await cache.put(keyForPerekName(tractate, perekNum), nameHe, {
+    expirationTtl: TTL_30_DAYS,
+  });
+}
+
+/** Resolve running perek header for /api/daf; warms perek-name KV from alts. */
+export async function resolvePerekHeaderForDaf(
+  cache: KVNamespace | undefined,
+  tractate: string,
+  page: string,
+  segments: SefariaSegments | null,
+  mishnaBundle: MishnaBundle,
+): Promise<PerekHeader | null> {
+  const mishnaRefs = mishnaBundle.map((m) => m.ref);
+  const toCache = perekNamesToCache(segments?.alts, mishnaRefs);
+  await Promise.all(
+    toCache.map(({ perekNum, nameHe }) => writePerekName(cache, tractate, perekNum, nameHe)),
+  );
+
+  const perekNums = [
+    ...new Set(
+      mishnaRefs
+        .map((r) => parsePerekFromMishnaRef(r))
+        .filter((n): n is number => n != null),
+    ),
+  ];
+  const cachedNameByPerek: Record<number, string> = {};
+  await Promise.all(
+    perekNums.map(async (n) => {
+      const name = await readPerekName(cache, tractate, n);
+      if (name) cachedNameByPerek[n] = name;
+    }),
+  );
+
+  return resolveRunningPerekHeader({
+    alts: segments?.alts,
+    mishnaRefs,
+    cachedNameByPerek,
+  });
 }

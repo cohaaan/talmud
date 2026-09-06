@@ -61,13 +61,16 @@ export function keyForCommentaries(tractate: string, page: string): string {
 // "Bava Kamma" is part of the key as-is). Do NOT normalise them or every cached
 // daf cold-misses and re-fetches.
 export function keyForHebrewBooks(tractate: string, page: string): string {
-  return `hb:v2:${tractate}:${page}`;
+  // v3: sanitizeHebrewBooksColumn on main column (broken gdropcap `[א]`/`א]`
+  // prefixes). v2 entries may still carry the glitch until cold-miss refetch.
+  return `hb:v3:${tractate}:${page}`;
 }
 export function keyForSefariaBundle(tractate: string, page: string): string {
   return `sefaria-bundle:v5:${tractate}:${page}`;
 }
 export function keyForSefariaSegments(tractate: string, page: string): string {
-  return `sefaria-seg:v1:${tractate}:${page}`;
+  // v2: include Sefaria chapter `alts` for running perek headers.
+  return `sefaria-seg:v2:${tractate}:${page}`;
 }
 export function keyForRishonim(tractate: string, page: string): string {
   return `rishonim:v4:${tractate}:${page}`;
@@ -88,6 +91,10 @@ export function keyForDafTopics(tractate: string, page: string): string {
 }
 export function keyForMishnaBundle(tractate: string, page: string): string {
   return `mishna-bundle:v1:${tractate}:${page}`;
+}
+/** Sefaria chapter name (from segment alts) keyed by tractate + 1-based perek. */
+export function keyForPerekName(tractate: string, perekNum: number): string {
+  return `perek-name:v1:${tractate}:${perekNum}`;
 }
 /** Parallel Jerusalem Talmud passages on the same mishnah as this gemara daf,
  *  with their real Hebrew+English text — the grounding for the `yerushalmi`

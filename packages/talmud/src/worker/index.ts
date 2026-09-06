@@ -266,6 +266,7 @@ import {
   getYerushalmiCached,
   readCachedTalmudParallels,
   readCachedYerushalmi,
+  resolvePerekHeaderForDaf,
   type SefariaSegments,
 } from './source-cache';
 import { computeCoverage, isKnownTractate } from './spine-coverage';
@@ -7927,11 +7928,19 @@ app.get('/api/daf/:tractate/:page', async (c) => {
     // click handler can't find anything to highlight. Sefaria failure is
     // non-fatal; the daf still renders from HB without the anchor
     // feature.
-    const [hb, segments, sefariaBundle] = await Promise.all([
+    const [hb, segments, sefariaBundle, mishnaBundle] = await Promise.all([
       getHebrewBooksDafCached(cache, tractate, page, track),
       getSefariaSegmentsCached(cache, tractate, page, track),
       getSefariaPageCached(cache, tractate, page, track).catch(() => null),
+      getMishnaBundleCached(cache, tractate, page, track),
     ]);
+    const perekHeader = await resolvePerekHeaderForDaf(
+      cache,
+      tractate,
+      page,
+      segments,
+      mishnaBundle,
+    );
     if (hb) {
       const data: TalmudPageData = {
         mainText: { hebrew: hb.main, english: '' },
@@ -7958,6 +7967,7 @@ app.get('/api/daf/:tractate/:page', async (c) => {
         _source: 'hebrewbooks',
         mainSegmentsHe: segments?.he ?? [],
         mainSegmentsEn: segments?.en ?? [],
+        perekHeader,
       });
     }
     if (source === 'hebrewbooks') {
@@ -7966,17 +7976,26 @@ app.get('/api/daf/:tractate/:page', async (c) => {
     }
   }
 
-  const [data, segments] = await Promise.all([
+  const [data, segments, mishnaBundle] = await Promise.all([
     getSefariaPageCached(cache, tractate, page, track),
     getSefariaSegmentsCached(cache, tractate, page, track),
+    getMishnaBundleCached(cache, tractate, page, track),
   ]);
   setCacheHeader();
   if (!data) return c.json({ error: 'Sefaria fetch failed' }, 502);
+  const perekHeader = await resolvePerekHeaderForDaf(
+    cache,
+    tractate,
+    page,
+    segments,
+    mishnaBundle,
+  );
   return c.json({
     ...data,
     _source: 'sefaria',
     mainSegmentsHe: segments?.he ?? [],
     mainSegmentsEn: segments?.en ?? [],
+    perekHeader,
   });
 });
 
