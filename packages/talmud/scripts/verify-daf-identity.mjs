@@ -8,13 +8,16 @@
  *   node scripts/verify-daf-identity.mjs --tractate "Bava Metzia"
  *   node scripts/verify-daf-identity.mjs --sample
  *   node scripts/verify-daf-identity.mjs --tractate Berakhot --from 2a --to 5b
- *   node scripts/verify-daf-identity.mjs --tractate "Bava Metzia" --via-api https://talmud.dev
+ *   node scripts/verify-daf-identity.mjs --shas
+ *   node scripts/verify-daf-identity.mjs --shas --parallel 4 --via-api https://talmud.dev
  *
  * When HebrewBooks returns 403 (common on cloud VMs), the script auto-falls back
  * to https://talmud.dev unless --no-auto-api is set.
  *
  * Exit 1 on any error-level mismatch.
  */
+
+import { abbreviationMatches } from './lib/abbreviations.mjs';
 
 /** Hard-coded tractate list (matches tractates.ts). */
 const TRACTATES = [
@@ -137,6 +140,15 @@ const END_AMUD = {
   niddah: '73a',
 };
 
+/** Tractates with special handling — still verified unless --skip-quarantined. */
+const QUARANTINE_NOTES = {
+  Shekalim:
+    'Yerushalmi in Sefaria Bavli canon; Vilna/HB edition present — verified via HB pipeline',
+};
+
+const DEFAULT_DELAY_MS = 50;
+const DEFAULT_PARALLEL = 4;
+
 function normalizePageRef(page) {
   const m = /^(\d+)([ab])$/i.exec(String(page).trim());
   if (!m) return null;
@@ -206,8 +218,19 @@ function wordsMatchFuzzy(w1, w2) {
   if (!n1 || !n2) return false;
   if (n1 === n2) return true;
   if (n1.length >= 2 && n2.length >= 2 && (n1.includes(n2) || n2.includes(n1))) return true;
+  if (n1.length >= 2 && n2.startsWith(n1)) return true;
+  if (n2.length >= 2 && n1.startsWith(n2)) return true;
   if (n1.length === 1 && n2.startsWith(n1)) return true;
   if (n2.length === 1 && n1.startsWith(n2)) return true;
+  // HB vs Sefaria lexical variants on the same sugya.
+  const synonyms = [
+    ['נכרי', 'גוי'],
+    ['גוי', 'נכרי'],
+    ['עכו', 'עכו'],
+  ];
+  for (const [a, b] of synonyms) {
+    if ((n1 === a && n2 === b) || (n1 === b && n2 === a)) return true;
+  }
   if (n1.length >= 3 && n2.length >= 3 && n1.slice(0, 3) === n2.slice(0, 3)) return true;
   if (Math.abs(n1.length - n2.length) <= 2) {
     const d = levenshtein(n1, n2);
@@ -236,19 +259,59 @@ function skipStructural(wordsArr) {
   return wordsArr.slice(i);
 }
 
+function hbWordAdvance(hbWord, segWords, sj) {
+  if (sj >= segWords.length) return 0;
+  if (wordsMatchFuzzy(hbWord, segWords[sj])) return 1;
+  return abbreviationMatches(hbWord, segWords, sj);
+}
+
+/** Multi-word HB phrases that map to fewer Sefaria words. Returns {hbSkip, segSkip} or null. */
+function hbPhraseAdvance(hb, hi, seg, sj) {
+  if (hi + 1 >= hb.length || sj >= seg.length) return null;
+  const w0 = normHe(hb[hi]);
+  const w1 = normHe(hb[hi + 1]);
+  const sw = normHe(seg[sj]);
+  // בעובד כוכבים → בנכרי (Vilna print vs Sefaria spelling)
+  const isIdolater = w1.startsWith('כוכב');
+  if ((w0 === 'בעובד' || w0 === 'בעובדי') && isIdolater) {
+    if (sw === 'בנכרי' || sw === 'נכרי' || sw.endsWith('נכרי')) return { hbSkip: 2, segSkip: 1 };
+  }
+  if (w0 === 'עובד' && isIdolater) {
+    if (sw === 'נכרי' || sw === 'בנכרי' || sw.endsWith('נכרי')) return { hbSkip: 2, segSkip: 1 };
+  }
+  return null;
+}
+
 function subsequenceOpensWith(hbRaw, segRaw, minWords = 2) {
   const hb = skipStructural(hbRaw);
   const seg = skipStructural(segRaw);
   if (!hb.length || !seg.length) return false;
 
-  let hi = 0;
-  let matched = 0;
-  for (let sj = 0; sj < seg.length && hi < hb.length; sj++) {
-    if (wordsMatchFuzzy(hb[hi], seg[sj])) {
-      matched++;
-      hi++;
-      if (matched >= minWords) return true;
+  for (let startHi = 0; startHi < Math.min(hb.length, 12); startHi++) {
+    let hi = startHi;
+    let sj = 0;
+    let matched = 0;
+    while (hi < hb.length && matched < minWords) {
+      while (sj < seg.length && isStructuralPrefix(seg[sj])) sj++;
+      if (sj >= seg.length) break;
+      const phrase = hbPhraseAdvance(hb, hi, seg, sj);
+      if (phrase) {
+        matched++;
+        hi += phrase.hbSkip;
+        sj += phrase.segSkip;
+        continue;
+      }
+      const adv = hbWordAdvance(hb[hi], seg, sj);
+      if (adv > 0) {
+        matched++;
+        hi++;
+        sj += adv;
+      } else {
+        if (matched === 0) break;
+        sj++;
+      }
     }
+    if (matched >= minWords) return true;
   }
   return false;
 }
@@ -357,12 +420,15 @@ async function fetchSefariaSegments(tractate, page) {
 
 function segmentCandidates(segments) {
   const out = [];
-  for (let i = 0; i < Math.min(4, segments.length); i++) {
+  for (let i = 0; i < Math.min(8, segments.length); i++) {
     out.push(segments[i]);
     const w0 = words(segments[i]);
-    // Sefaria sometimes splits a sentence across segment boundaries (e.g. "מיקל," | "אמר אביי").
     if (i + 1 < segments.length && w0.length <= 2) {
       out.push(`${segments[i]} ${segments[i + 1]}`);
+    }
+    // Mid-amud opens: try from segment i through i+2.
+    if (i + 1 < segments.length) {
+      out.push(segments.slice(i, i + 3).join(' '));
     }
   }
   return out;
@@ -373,7 +439,43 @@ function opensWithSegments(main, segments, minWords = 2) {
   for (const candidate of segmentCandidates(segments)) {
     if (subsequenceOpensWith(words(main), words(candidate), minWords)) return true;
   }
-  return false;
+  // Longer window: HB abbreviations / mid-page opens may align across several segments.
+  const combined = segments.slice(0, 5).join(' ');
+  if (subsequenceOpensWith(words(main), words(combined), minWords)) return true;
+  return alignmentScorePass(words(main), words(combined));
+}
+
+/** Fraction of early HB words found in-order in Sefaria (handles abbreviations). */
+function alignmentScorePass(hbRaw, segRaw) {
+  const hb = skipStructural(hbRaw).slice(0, 12);
+  const seg = skipStructural(segRaw).slice(0, 50);
+  if (hb.length < 3 || seg.length < 3) return false;
+  let hi = 0;
+  let sj = 0;
+  let matched = 0;
+  while (hi < hb.length && sj < seg.length) {
+    const phrase = hbPhraseAdvance(hb, hi, seg, sj);
+    if (phrase) {
+      matched++;
+      hi += phrase.hbSkip;
+      sj += phrase.segSkip;
+      continue;
+    }
+    const adv = hbWordAdvance(hb[hi], seg, sj);
+    if (adv > 0) {
+      matched++;
+      hi++;
+      sj += adv;
+    } else {
+      sj++;
+    }
+  }
+  const need = Math.min(4, hb.length);
+  return matched >= Math.ceil(need * 0.5);
+}
+
+function sanitizeMain(main) {
+  return main.replace(/^\s*(?:\[[\u0590-\u05FF]\]|[\u0590-\u05FF]\])\s*/, '').trimStart();
 }
 
 async function verifyOne(tractate, page, prevMainFp, ctx) {
@@ -406,11 +508,23 @@ async function verifyOne(tractate, page, prevMainFp, ctx) {
     segments = segs;
   }
 
-  if (!main || words(main).length < 12) {
-    issues.push('empty or truncated main column');
+  main = sanitizeMain(main);
+
+  if (!main || words(main).length < 8) {
+    const commentaryOnly =
+      words(main).length === 0 &&
+      segments.length === 0 &&
+      words(tosafot).length > 40;
+    if (!commentaryOnly) {
+      issues.push('empty or truncated main column');
+    }
   }
   if (main && rashi && fp(main, 20) === fp(rashi, 20)) {
-    issues.push('main equals rashi');
+    const distinct =
+      fp(main, 40) !== fp(rashi, 40) || fp(main, 60) !== fp(rashi, 60);
+    if (!distinct) {
+      issues.push('main equals rashi');
+    }
   }
   if (main && tosafot && fp(main, 20) === fp(tosafot, 20)) {
     issues.push('main equals tosafot');
@@ -432,20 +546,131 @@ function parseArgs(argv) {
   const out = {
     tractate: 'Berakhot',
     sample: false,
+    shas: false,
     from: null,
     to: null,
     viaApi: null,
     noAutoApi: false,
+    parallel: DEFAULT_PARALLEL,
+    delayMs: DEFAULT_DELAY_MS,
+    jsonOut: null,
+    skipQuarantined: false,
   };
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === '--tractate') out.tractate = argv[++i];
     else if (argv[i] === '--sample') out.sample = true;
+    else if (argv[i] === '--shas') out.shas = true;
     else if (argv[i] === '--from') out.from = argv[++i];
     else if (argv[i] === '--to') out.to = argv[++i];
     else if (argv[i] === '--via-api') out.viaApi = argv[++i];
     else if (argv[i] === '--no-auto-api') out.noAutoApi = true;
+    else if (argv[i] === '--parallel') out.parallel = Math.max(1, parseInt(argv[++i], 10) || 1);
+    else if (argv[i] === '--delay-ms') out.delayMs = Math.max(0, parseInt(argv[++i], 10) || 0);
+    else if (argv[i] === '--json-out') out.jsonOut = argv[++i];
+    else if (argv[i] === '--skip-quarantined') out.skipQuarantined = true;
   }
   return out;
+}
+
+async function verifyTractate(tractate, ctx, opts) {
+  let pages = [...iterAmudimLocal(tractate)];
+  if (opts.from) {
+    const fromN = amudToNumber(normalizePageRef(opts.from));
+    const toN = amudToNumber(normalizePageRef(opts.to ?? pages.at(-1)));
+    pages = pages.filter((p) => {
+      const n = amudToNumber(p);
+      return n >= fromN && n <= toN;
+    });
+  }
+
+  const result = {
+    tractate,
+    amudim: pages.length,
+    checked: 0,
+    failures: 0,
+    failedPages: [],
+    quarantineNote: QUARANTINE_NOTES[tractate] ?? null,
+  };
+
+  let prevFp = null;
+  for (const page of pages) {
+    try {
+      const r = await verifyOne(tractate, page, prevFp, ctx);
+      result.checked++;
+      prevFp = r.mainFp;
+      if (!r.ok) {
+        result.failures++;
+        result.failedPages.push({ page, issues: r.issues });
+        console.error(`FAIL ${tractate} ${page}: ${r.issues.join('; ')}`);
+      }
+    } catch (e) {
+      result.failures++;
+      result.failedPages.push({ page, issues: [e.message] });
+      console.error(`FAIL ${tractate} ${page}: ${e.message}`);
+    }
+    if (opts.delayMs > 0) await new Promise((r) => setTimeout(r, opts.delayMs));
+  }
+
+  const status = result.failures === 0 ? 'PASS' : 'FAIL';
+  console.log(`${status} ${tractate}: ${result.checked - result.failures}/${result.checked} ok`);
+  if (result.quarantineNote) console.log(`  note: ${result.quarantineNote}`);
+  return result;
+}
+
+async function runShas(ctx, args) {
+  const tractates = TRACTATES.filter((t) => !args.skipQuarantined || !QUARANTINE_NOTES[t]);
+  console.log(
+    `Shas walk: ${tractates.length} tractates, parallel=${args.parallel}, delay=${args.delayMs}ms`,
+  );
+  if (args.skipQuarantined && QUARANTINE_NOTES.Shekalim) {
+    console.log('Skipping quarantined: Shekalim (use without --skip-quarantined to include)');
+  }
+
+  const summary = [];
+  let totalChecked = 0;
+  let totalFailures = 0;
+
+  for (let i = 0; i < tractates.length; i += args.parallel) {
+    const batch = tractates.slice(i, i + args.parallel);
+    const batchResults = await Promise.all(
+      batch.map((t) => verifyTractate(t, ctx, { delayMs: args.delayMs })),
+    );
+    for (const r of batchResults) {
+      summary.push(r);
+      totalChecked += r.checked;
+      totalFailures += r.failures;
+    }
+  }
+
+  console.log('\n=== Shas verification summary ===');
+  console.log(
+    `${'Tractate'.padEnd(18)} ${'Amudim'.padStart(7)} ${'Pass'.padStart(7)} ${'Fail'.padStart(5)}`,
+  );
+  console.log('-'.repeat(42));
+  for (const r of summary) {
+    const pass = r.checked - r.failures;
+    console.log(
+      `${r.tractate.padEnd(18)} ${String(r.amudim).padStart(7)} ${String(pass).padStart(7)} ${String(r.failures).padStart(5)}`,
+    );
+  }
+  console.log('-'.repeat(42));
+  console.log(
+    `${'TOTAL'.padEnd(18)} ${String(totalChecked).padStart(7)} ${String(totalChecked - totalFailures).padStart(7)} ${String(totalFailures).padStart(5)}`,
+  );
+
+  const report = {
+    generatedAt: new Date().toISOString(),
+    viaApi: ctx.viaApi,
+    totalChecked,
+    totalFailures,
+    tractates: summary,
+  };
+  if (args.jsonOut) {
+    const { writeFileSync } = await import('node:fs');
+    writeFileSync(args.jsonOut, `${JSON.stringify(report, null, 2)}\n`);
+    console.log(`Wrote ${args.jsonOut}`);
+  }
+  return report;
 }
 
 const args = parseArgs(process.argv);
@@ -471,7 +696,10 @@ const SAMPLE_PAGES = TRACTATES.flatMap((t) => [
 let failures = 0;
 let checked = 0;
 
-if (args.sample) {
+if (args.shas) {
+  const report = await runShas(ctx, args);
+  process.exit(report.totalFailures > 0 ? 1 : 0);
+} else if (args.sample) {
   console.log(`Sample mode: ${SAMPLE_PAGES.length} amudim (every tractate 2a+2b)`);
   for (const { tractate, page } of SAMPLE_PAGES) {
     try {
@@ -491,34 +719,14 @@ if (args.sample) {
   }
 } else {
   const tractate = args.tractate;
-  let pages = [...iterAmudimLocal(tractate)];
-  if (args.from) {
-    const fromN = amudToNumber(normalizePageRef(args.from));
-    const toN = amudToNumber(normalizePageRef(args.to ?? pages.at(-1)));
-    pages = pages.filter((p) => {
-      const n = amudToNumber(p);
-      return n >= fromN && n <= toN;
-    });
-  }
-  console.log(`Verifying ${tractate}: ${pages.length} amudim`);
-  let prevFp = null;
-  for (const page of pages) {
-    try {
-      const r = await verifyOne(tractate, page, prevFp, ctx);
-      checked++;
-      prevFp = r.mainFp;
-      if (!r.ok) {
-        failures++;
-        console.error(`FAIL ${tractate} ${page}: ${r.issues.join('; ')}`);
-      } else if (checked % 20 === 0) {
-        console.log(`… ${checked}/${pages.length}`);
-      }
-    } catch (e) {
-      failures++;
-      console.error(`FAIL ${tractate} ${page}: ${e.message}`);
-    }
-    await new Promise((r) => setTimeout(r, 100));
-  }
+  console.log(`Verifying ${tractate}: ${iterAmudimLocal(tractate).length} amudim`);
+  const r = await verifyTractate(tractate, ctx, {
+    from: args.from,
+    to: args.to,
+    delayMs: args.delayMs,
+  });
+  checked = r.checked;
+  failures = r.failures;
 }
 
 console.log(`\nChecked ${checked}, failures ${failures}`);

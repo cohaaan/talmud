@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractShastext } from '../src/lib/sefref/hebrewbooks/client';
+import { extractShastext, sanitizeHebrewBooksColumn } from '../src/lib/sefref/hebrewbooks/client';
 
 // HebrewBooks wraps each column in <fieldset><legend>…</legend><div
 // class="shastextN">…</div></fieldset>:  N=2 Gemara, N=3 Rashi, N=4 Tosafot.
@@ -9,6 +9,13 @@ import { extractShastext } from '../src/lib/sefref/hebrewbooks/client';
 
 const wrap = (n: number, inner: string, legend = '') =>
   `<fieldset style="x"><legend>${legend}</legend><div class="shastext${n}">${inner}</div></fieldset>`;
+
+describe('sanitizeHebrewBooksColumn', () => {
+  it('strips broken gdropcap bracket prefixes', () => {
+    expect(sanitizeHebrewBooksColumn('[א] נשעייה')).toBe('נשעייה');
+    expect(sanitizeHebrewBooksColumn('א] כעבין')).toBe('כעבין');
+  });
+});
 
 describe('extractShastext — well-formed pages', () => {
   const html =

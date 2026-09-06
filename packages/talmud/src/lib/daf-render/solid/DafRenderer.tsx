@@ -27,6 +27,7 @@ if (typeof document !== 'undefined') {
   const fontPromises = [
     '16px "Mekorot Vilna"',
     '11px "Mekorot Rashi"',
+    '11px "Mekorot Vilna Italic"',
     '700 16px "Mekorot Vilna"',
     '11px "Mekorot Vilna"',
   ].map((spec) => document.fonts.load(spec).catch(() => null));

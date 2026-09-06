@@ -14,7 +14,7 @@ export const defaultOptions: DafOptions = {
   mainWidth: 0.47,
   padding: { vertical: 8, horizontal: 14 },
   halfway: 0.5,
-  fontFamily: { main: 'Mekorot Vilna', inner: 'Mekorot Rashi', outer: 'Mekorot Rashi' },
+  fontFamily: { main: 'Mekorot Vilna', inner: 'Mekorot Rashi', outer: 'Mekorot Vilna Italic' },
   direction: 'rtl',
   fontSize: { main: 16, side: 11 },
   lineHeight: { main: 18, side: 14.5 },

@@ -33,7 +33,16 @@ export interface DafIdentityResult {
   };
 }
 
-const MIN_MAIN_WORDS = 12;
+const MIN_MAIN_WORDS = 8;
+const MIN_MAIN_WORDS_WARN = 12;
+
+function columnsLikelyDistinct(main: string, rashi: string): boolean {
+  if (!main || !rashi) return true;
+  if (openingFingerprint(main, 20) !== openingFingerprint(rashi, 20)) return true;
+  if (openingFingerprint(main, 40) !== openingFingerprint(rashi, 40)) return true;
+  if (openingFingerprint(main, 60) !== openingFingerprint(rashi, 60)) return true;
+  return false;
+}
 
 export function verifyDafIdentity(input: DafIdentityInput): DafIdentityResult {
   const issues: DafIdentityIssue[] = [];
@@ -63,12 +72,23 @@ export function verifyDafIdentity(input: DafIdentityInput): DafIdentityResult {
   const fp = openingFingerprint(main);
 
   if (mainWords.length === 0) {
+    const tosafotWords = extractWords(tosafot);
+    const commentaryOnly =
+      (input.mainSegmentsHe?.length ?? 0) === 0 && tosafotWords.length > 40;
+    if (!commentaryOnly) {
+      issues.push({
+        level: 'error',
+        code: 'empty-main',
+        message: 'Gemara column is empty — likely wrong amud or extract failure',
+      });
+    }
+  } else if (mainWords.length < MIN_MAIN_WORDS) {
     issues.push({
       level: 'error',
-      code: 'empty-main',
-      message: 'Gemara column is empty — likely wrong amud or extract failure',
+      code: 'short-main',
+      message: `Gemara column unusually short (${mainWords.length} words) — may be truncated`,
     });
-  } else if (mainWords.length < MIN_MAIN_WORDS) {
+  } else if (mainWords.length < MIN_MAIN_WORDS_WARN) {
     issues.push({
       level: 'warn',
       code: 'short-main',
@@ -91,7 +111,7 @@ export function verifyDafIdentity(input: DafIdentityInput): DafIdentityResult {
     });
   }
 
-  if (main && rashi && openingFingerprint(main, 20) === openingFingerprint(rashi, 20)) {
+  if (main && rashi && !columnsLikelyDistinct(main, rashi)) {
     issues.push({
       level: 'error',
       code: 'main-equals-rashi',

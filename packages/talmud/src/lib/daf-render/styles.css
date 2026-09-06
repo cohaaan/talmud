@@ -204,10 +204,26 @@
   font-weight: 600;
   margin: 0.55em 0;
 }
-/* Tosafot outer column: same Rashi face, slightly tighter rhythm vs Rashi. */
+/* Tosafot outer column: Vilna italic face (printed Tosafot uses a distinct
+   hand from Rashi); slightly tighter rhythm than inner Rashi. */
 .daf-root .daf-outer .daf-text {
   font-size: calc(var(--daf-font-size-side) * 0.96);
   line-height: calc(var(--daf-line-height-side) * 0.97);
+  letter-spacing: 0.005em;
+}
+/* Rashi lemmas (shastitle7) vs body (.five) — match printed weight contrast. */
+.daf-root .daf-inner .daf-text .shastitle7 {
+  font-weight: 700;
+}
+.daf-root .daf-inner .daf-text .five {
+  font-weight: 400;
+}
+.daf-root .daf-outer .daf-text .shastitle7 {
+  font-weight: 700;
+  font-style: normal;
+}
+.daf-root .daf-outer .daf-text .five {
+  font-weight: 400;
 }
 
 /* Some Sefaria commentary pieces (e.g. Rashi on Eruvin 102a) embed the printed

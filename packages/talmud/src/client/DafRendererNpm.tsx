@@ -54,7 +54,7 @@ export function DafRendererNpm(props: DafRendererNpmProps): JSX.Element {
       mainWidth: `${mw * 100}%`,
       fontSize: { main: `${fs.main}px`, side: `${fs.side}px` },
       lineHeight: { main: `${lh.main}px`, side: `${lh.side}px` },
-      fontFamily: { main: 'Mekorot Vilna', inner: 'Mekorot Rashi', outer: 'Mekorot Rashi' },
+      fontFamily: { main: 'Mekorot Vilna', inner: 'Mekorot Rashi', outer: 'Mekorot Vilna Italic' },
     });
     instance!.render(props.main, props.inner, props.outer, props.amud ?? 'a', undefined, () => {
       if (props.onSpacers && instance) props.onSpacers({ ...instance.spacerHeights });

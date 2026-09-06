@@ -13,6 +13,9 @@ export interface DafPageFrameProps {
  * Printed Vilna Shas page silhouette: warm paper, double rule, running
  * tractate header, and a marginal Hebrew folio mark. Study overlays (gutter
  * icons, highlights) render inside the frame on top of the daf surface.
+ *
+ * TODO(perek-header): HB text exposes gdropcap/ghadran but not centered פרק
+ * titles; needs Sefaria chapter index or open perek→daf map before rendering.
  */
 export function DafPageFrame(props: DafPageFrameProps): JSX.Element {
   const folio = () => pageLabelHe(props.page);

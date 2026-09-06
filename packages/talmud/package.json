@@ -25,7 +25,9 @@
     "verify:daf-identity": "node scripts/verify-daf-identity.mjs",
     "verify:daf-identity:sample": "node scripts/verify-daf-identity.mjs --sample",
     "verify:daf-identity:bava-metzia": "node scripts/verify-daf-identity.mjs --tractate \"Bava Metzia\"",
+    "verify:daf-identity:shas": "node scripts/verify-daf-identity.mjs --shas --via-api https://talmud.dev --parallel 4 --delay-ms 40 --json-out /tmp/shas-verify-report.json",
     "capture-daf-fixtures": "node scripts/capture-daf-fixtures.mjs",
+    "capture-shas-sample": "node scripts/capture-shas-sample.mjs",
     "warm:skeleton:shas": "node scripts/warm-skeleton-shas.mjs"
   },
   "dependencies": {
