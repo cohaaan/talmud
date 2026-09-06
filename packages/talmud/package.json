@@ -24,6 +24,8 @@
     "warm:brachot:dry": "node scripts/warm-brachot-analyze.mjs --dry-run",
     "verify:daf-identity": "node scripts/verify-daf-identity.mjs",
     "verify:daf-identity:sample": "node scripts/verify-daf-identity.mjs --sample",
+    "verify:daf-identity:bava-metzia": "node scripts/verify-daf-identity.mjs --tractate \"Bava Metzia\"",
+    "capture-daf-fixtures": "node scripts/capture-daf-fixtures.mjs",
     "warm:skeleton:shas": "node scripts/warm-skeleton-shas.mjs"
   },
   "dependencies": {

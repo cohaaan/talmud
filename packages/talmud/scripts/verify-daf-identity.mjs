@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 /**
- * Live daf-identity verifier — fetches HebrewBooks + Sefaria for each amud
- * and checks tractate/page/content alignment.
+ * Live daf-identity verifier — fetches HebrewBooks (or app API) + Sefaria for
+ * each amud and checks tractate/page/content alignment.
  *
  * Usage:
  *   node scripts/verify-daf-identity.mjs --tractate Berakhot
+ *   node scripts/verify-daf-identity.mjs --tractate "Bava Metzia"
  *   node scripts/verify-daf-identity.mjs --sample
  *   node scripts/verify-daf-identity.mjs --tractate Berakhot --from 2a --to 5b
+ *   node scripts/verify-daf-identity.mjs --tractate "Bava Metzia" --via-api https://talmud.dev
+ *
+ * When HebrewBooks returns 403 (common on cloud VMs), the script auto-falls back
+ * to https://talmud.dev unless --no-auto-api is set.
  *
  * Exit 1 on any error-level mismatch.
  */
@@ -170,14 +175,82 @@ function stripHtml(s) {
 function normHe(s) {
   return stripHtml(s)
     .replace(/[\u0591-\u05C7\u05F0-\u05F4]/g, '')
+    .replace(/[ךםןףץ]/g, (c) => ({ ך: 'כ', ם: 'מ', ן: 'נ', ף: 'פ', ץ: 'צ' })[c] ?? c)
+    .replace(/[״׳"'`,.:;!?()[\]{}־–—]/g, '')
     .replace(/[^\u0590-\u05FF]/g, '')
-    .replace(/[ךםןףץ]/g, (c) => ({ ך: 'כ', ם: 'מ', ן: 'נ', ף: 'פ', ץ: 'צ' })[c] ?? c);
+    .toLowerCase();
+}
+
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+function wordsMatchFuzzy(w1, w2) {
+  if (!w1 || !w2) return false;
+  if (w1 === w2) return true;
+  const n1 = normHe(w1);
+  const n2 = normHe(w2);
+  if (!n1 || !n2) return false;
+  if (n1 === n2) return true;
+  if (n1.length >= 2 && n2.length >= 2 && (n1.includes(n2) || n2.includes(n1))) return true;
+  if (n1.length === 1 && n2.startsWith(n1)) return true;
+  if (n2.length === 1 && n1.startsWith(n2)) return true;
+  if (n1.length >= 3 && n2.length >= 3 && n1.slice(0, 3) === n2.slice(0, 3)) return true;
+  if (Math.abs(n1.length - n2.length) <= 2) {
+    const d = levenshtein(n1, n2);
+    const maxLen = Math.max(n1.length, n2.length);
+    const threshold = maxLen <= 3 ? 1 : Math.ceil(maxLen * 0.3);
+    if (d <= threshold) return true;
+  }
+  return false;
+}
+
+function isStructuralPrefix(word) {
+  const n = normHe(word);
+  return n.startsWith('מתנ') || n === 'גמ' || n.startsWith('גמ');
 }
 
 function words(html) {
   return stripHtml(html)
     .split(/\s+/)
+    .map((w) => w.trim())
     .filter((w) => normHe(w).length > 0);
+}
+
+function skipStructural(wordsArr) {
+  let i = 0;
+  while (i < wordsArr.length && isStructuralPrefix(wordsArr[i])) i++;
+  return wordsArr.slice(i);
+}
+
+function subsequenceOpensWith(hbRaw, segRaw, minWords = 2) {
+  const hb = skipStructural(hbRaw);
+  const seg = skipStructural(segRaw);
+  if (!hb.length || !seg.length) return false;
+
+  let hi = 0;
+  let matched = 0;
+  for (let sj = 0; sj < seg.length && hi < hb.length; sj++) {
+    if (wordsMatchFuzzy(hb[hi], seg[sj])) {
+      matched++;
+      hi++;
+      if (matched >= minWords) return true;
+    }
+  }
+  return false;
 }
 
 function fp(html, n = 6) {
@@ -217,6 +290,23 @@ function extractShastext(html, n) {
   return html.slice(contentStart, fieldsetEnd).trim();
 }
 
+const DEFAULT_API_BASE = 'https://talmud.dev';
+
+async function probeHbReachable() {
+  try {
+    const res = await fetch(
+      'https://hebrewbooks.org/shas.aspx?mesechta=1&daf=2&format=text',
+      {
+        headers: { 'User-Agent': 'talmud-verify-daf-identity/1.0' },
+        signal: AbortSignal.timeout(10000),
+      },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function fetchHb(tractate, page) {
   const mesechta = TRACTATE_IDS[tractate];
   if (!mesechta) throw new Error(`Unknown tractate ${tractate}`);
@@ -232,6 +322,26 @@ async function fetchHb(tractate, page) {
     main: extractShastext(html, 2),
     rashi: extractShastext(html, 3),
     tosafot: extractShastext(html, 4),
+    source: 'hebrewbooks-direct',
+  };
+}
+
+async function fetchViaApi(apiBase, tractate, page) {
+  const base = apiBase.replace(/\/$/, '');
+  const url = `${base}/api/daf/${encodeURIComponent(tractate)}/${page}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+  if (res.status === 400) {
+    throw new Error(`API 400 invalid ref ${tractate} ${page}`);
+  }
+  if (!res.ok) throw new Error(`API HTTP ${res.status} ${tractate} ${page}`);
+  const j = await res.json();
+  if (j.error) throw new Error(`API error ${tractate} ${page}: ${j.error}`);
+  return {
+    main: j.mainText?.hebrew ?? '',
+    rashi: j.rashi?.hebrew ?? '',
+    tosafot: j.tosafot?.hebrew ?? '',
+    segments: Array.isArray(j.mainSegmentsHe) ? j.mainSegmentsHe : [],
+    source: j._source ?? 'api',
   };
 }
 
@@ -245,41 +355,72 @@ async function fetchSefariaSegments(tractate, page) {
   return Array.isArray(j.he) ? j.he : [];
 }
 
-function opensWithSegments(main, segments, minWords = 2) {
-  const hb = words(main);
-  const seg = words(segments[0] ?? '');
-  while (seg.length && normHe(seg[0]) === normHe('מתני')) seg.shift();
-  const n = Math.min(minWords, hb.length, seg.length);
-  for (let i = 0; i < n; i++) {
-    if (normHe(hb[i]) !== normHe(seg[i]) && !normHe(hb[i]).startsWith(normHe(seg[i]).slice(0, 3))) {
-      return false;
+function segmentCandidates(segments) {
+  const out = [];
+  for (let i = 0; i < Math.min(4, segments.length); i++) {
+    out.push(segments[i]);
+    const w0 = words(segments[i]);
+    // Sefaria sometimes splits a sentence across segment boundaries (e.g. "מיקל," | "אמר אביי").
+    if (i + 1 < segments.length && w0.length <= 2) {
+      out.push(`${segments[i]} ${segments[i + 1]}`);
     }
   }
-  return n >= minWords;
+  return out;
 }
 
-async function verifyOne(tractate, page, prevMainFp) {
+function opensWithSegments(main, segments, minWords = 2) {
+  if (!segments.length) return false;
+  for (const candidate of segmentCandidates(segments)) {
+    if (subsequenceOpensWith(words(main), words(candidate), minWords)) return true;
+  }
+  return false;
+}
+
+async function verifyOne(tractate, page, prevMainFp, ctx) {
   const issues = [];
   const canonical = normalizePageRef(page);
   if (!canonical) issues.push(`invalid page ref ${page}`);
 
-  const [hb, segments] = await Promise.all([
-    fetchHb(tractate, canonical ?? page),
-    fetchSefariaSegments(tractate, canonical ?? page).catch(() => []),
-  ]);
+  let main = '';
+  let rashi = '';
+  let tosafot = '';
+  let segments = [];
 
-  if (!hb.main || words(hb.main).length < 12) {
+  if (ctx.viaApi) {
+    const api = await fetchViaApi(ctx.viaApi, tractate, canonical ?? page);
+    main = api.main;
+    rashi = api.rashi;
+    tosafot = api.tosafot;
+    segments = api.segments;
+    if (segments.length === 0) {
+      segments = await fetchSefariaSegments(tractate, canonical ?? page).catch(() => []);
+    }
+  } else {
+    const [hb, segs] = await Promise.all([
+      fetchHb(tractate, canonical ?? page),
+      fetchSefariaSegments(tractate, canonical ?? page).catch(() => []),
+    ]);
+    main = hb.main;
+    rashi = hb.rashi;
+    tosafot = hb.tosafot;
+    segments = segs;
+  }
+
+  if (!main || words(main).length < 12) {
     issues.push('empty or truncated main column');
   }
-  if (hb.main && hb.rashi && fp(hb.main, 20) === fp(hb.rashi, 20)) {
+  if (main && rashi && fp(main, 20) === fp(rashi, 20)) {
     issues.push('main equals rashi');
   }
-  if (segments.length && !opensWithSegments(hb.main, segments)) {
+  if (main && tosafot && fp(main, 20) === fp(tosafot, 20)) {
+    issues.push('main equals tosafot');
+  }
+  if (segments.length && !opensWithSegments(main, segments)) {
     issues.push(
-      `Sefaria mismatch: HB=[${words(hb.main).slice(0, 3).join(' ')}] SF=[${words(segments[0]).slice(0, 3).join(' ')}]`,
+      `Sefaria mismatch: main=[${words(main).slice(0, 3).join(' ')}] SF=[${words(segments[0]).slice(0, 3).join(' ')}]`,
     );
   }
-  const mainFp = fp(hb.main);
+  const mainFp = fp(main);
   if (prevMainFp && prevMainFp === mainFp) {
     issues.push('identical opening to previous amud — possible wrong folio');
   }
@@ -288,17 +429,40 @@ async function verifyOne(tractate, page, prevMainFp) {
 }
 
 function parseArgs(argv) {
-  const out = { tractate: 'Berakhot', sample: false, from: null, to: null };
+  const out = {
+    tractate: 'Berakhot',
+    sample: false,
+    from: null,
+    to: null,
+    viaApi: null,
+    noAutoApi: false,
+  };
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === '--tractate') out.tractate = argv[++i];
     else if (argv[i] === '--sample') out.sample = true;
     else if (argv[i] === '--from') out.from = argv[++i];
     else if (argv[i] === '--to') out.to = argv[++i];
+    else if (argv[i] === '--via-api') out.viaApi = argv[++i];
+    else if (argv[i] === '--no-auto-api') out.noAutoApi = true;
   }
   return out;
 }
 
 const args = parseArgs(process.argv);
+
+/** @type {{ viaApi: string | null }} */
+const ctx = { viaApi: args.viaApi };
+if (!ctx.viaApi && !args.noAutoApi) {
+  const hbOk = await probeHbReachable();
+  if (!hbOk) {
+    ctx.viaApi = DEFAULT_API_BASE;
+    console.log(
+      `HebrewBooks unreachable from this host (likely 403) — using app API ${DEFAULT_API_BASE}`,
+    );
+  }
+} else if (ctx.viaApi) {
+  console.log(`Using app API ${ctx.viaApi} (production daf pipeline)`);
+}
 const SAMPLE_PAGES = TRACTATES.flatMap((t) => [
   { tractate: t, page: '2a' },
   { tractate: t, page: '2b' },
@@ -311,7 +475,7 @@ if (args.sample) {
   console.log(`Sample mode: ${SAMPLE_PAGES.length} amudim (every tractate 2a+2b)`);
   for (const { tractate, page } of SAMPLE_PAGES) {
     try {
-      const r = await verifyOne(tractate, page, null);
+      const r = await verifyOne(tractate, page, null, ctx);
       checked++;
       if (!r.ok) {
         failures++;
@@ -340,7 +504,7 @@ if (args.sample) {
   let prevFp = null;
   for (const page of pages) {
     try {
-      const r = await verifyOne(tractate, page, prevFp);
+      const r = await verifyOne(tractate, page, prevFp, ctx);
       checked++;
       prevFp = r.mainFp;
       if (!r.ok) {
