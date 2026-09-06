@@ -1,5 +1,5 @@
-import type { TalmudPageData } from '../lib/sefref';
 import { parsePageRef } from '../lib/daf-identity/page-ref';
+import type { TalmudPageData } from '../lib/sefref';
 import { ensureMasechetIncipit } from './ensureMasechetIncipit';
 import { injectHadran } from './injectHadran';
 import { tokenizeHebrewHtml } from './tokenize';
@@ -26,9 +26,7 @@ export function tokenizeDafPreview(
   };
 
   let main = tokenizeHebrewHtml(d.mainText.hebrew);
-  let inner = d.rashi
-    ? wrapPieces(d.rashi.pieces, d.rashi.pieceKeys, d.rashi.hebrew, 'rashi')
-    : '';
+  let inner = d.rashi ? wrapPieces(d.rashi.pieces, d.rashi.pieceKeys, d.rashi.hebrew, 'rashi') : '';
   let outer = d.tosafot
     ? wrapPieces(d.tosafot.pieces, d.tosafot.pieceKeys, d.tosafot.hebrew, 'tosafot')
     : '';

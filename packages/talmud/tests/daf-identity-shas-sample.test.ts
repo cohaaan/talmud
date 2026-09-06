@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { openingFingerprint, verifyDafIdentity } from '../src/lib/daf-identity';
@@ -26,7 +26,9 @@ const manifest: Array<{ id: string; tractate: string; page: string }> = JSON.par
 
 describe('daf identity — cross-Shas sample (start/mid/end)', () => {
   it('manifest lists fixtures on disk', () => {
-    const files = readdirSync(SAMPLE_DIR).filter((f) => f.endsWith('.json') && f !== 'manifest.json');
+    const files = readdirSync(SAMPLE_DIR).filter(
+      (f) => f.endsWith('.json') && f !== 'manifest.json',
+    );
     expect(files.length).toBe(manifest.length);
   });
 

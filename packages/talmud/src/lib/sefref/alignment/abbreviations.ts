@@ -100,11 +100,7 @@ export function abbreviationMatches(hbRaw: string, sefWords: string[], sj: numbe
   if (/^ר[״"״]ל$/.test(s)) {
     if (sj < sefWords.length && (eq(sefWords[sj], 'ריש') || startsWith(sefWords[sj], 'ריש')))
       return 1;
-    if (
-      sj + 1 < sefWords.length &&
-      eq(sefWords[sj], 'רבי') &&
-      startsWith(sefWords[sj + 1], 'ל')
-    )
+    if (sj + 1 < sefWords.length && eq(sefWords[sj], 'רבי') && startsWith(sefWords[sj + 1], 'ל'))
       return 2;
     return 0;
   }

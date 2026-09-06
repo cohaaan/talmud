@@ -4,7 +4,7 @@
  * Usage: node scripts/capture-shas-sample.mjs [--via-api https://talmud.dev]
  */
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -87,9 +87,10 @@ function slug(t, p) {
   return `${t.toLowerCase().replace(/\s+/g, '-')}-${p}`;
 }
 
-const api = (process.argv.includes('--via-api')
-  ? process.argv[process.argv.indexOf('--via-api') + 1]
-  : DEFAULT_API
+const api = (
+  process.argv.includes('--via-api')
+    ? process.argv[process.argv.indexOf('--via-api') + 1]
+    : DEFAULT_API
 ).replace(/\/$/, '');
 
 mkdirSync(OUT_DIR, { recursive: true });

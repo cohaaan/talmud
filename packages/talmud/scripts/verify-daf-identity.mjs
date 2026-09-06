@@ -357,13 +357,10 @@ const DEFAULT_API_BASE = 'https://talmud.dev';
 
 async function probeHbReachable() {
   try {
-    const res = await fetch(
-      'https://hebrewbooks.org/shas.aspx?mesechta=1&daf=2&format=text',
-      {
-        headers: { 'User-Agent': 'talmud-verify-daf-identity/1.0' },
-        signal: AbortSignal.timeout(10000),
-      },
-    );
+    const res = await fetch('https://hebrewbooks.org/shas.aspx?mesechta=1&daf=2&format=text', {
+      headers: { 'User-Agent': 'talmud-verify-daf-identity/1.0' },
+      signal: AbortSignal.timeout(10000),
+    });
     return res.ok;
   } catch {
     return false;
@@ -512,16 +509,13 @@ async function verifyOne(tractate, page, prevMainFp, ctx) {
 
   if (!main || words(main).length < 8) {
     const commentaryOnly =
-      words(main).length === 0 &&
-      segments.length === 0 &&
-      words(tosafot).length > 40;
+      words(main).length === 0 && segments.length === 0 && words(tosafot).length > 40;
     if (!commentaryOnly) {
       issues.push('empty or truncated main column');
     }
   }
   if (main && rashi && fp(main, 20) === fp(rashi, 20)) {
-    const distinct =
-      fp(main, 40) !== fp(rashi, 40) || fp(main, 60) !== fp(rashi, 60);
+    const distinct = fp(main, 40) !== fp(rashi, 40) || fp(main, 60) !== fp(rashi, 60);
     if (!distinct) {
       issues.push('main equals rashi');
     }

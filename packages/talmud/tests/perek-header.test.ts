@@ -18,9 +18,7 @@ describe('perek header helpers', () => {
   });
 
   it('perekNameFromAlt reads whole-chapter Sefaria alt', () => {
-    expect(
-      perekNameFromAlt({ he: ['שנים אוחזין'], whole: true }),
-    ).toBe('שנים אוחזין');
+    expect(perekNameFromAlt({ he: ['שנים אוחזין'], whole: true })).toBe('שנים אוחזין');
     expect(perekNameFromAlt({ he: ['foo'], whole: false })).toBeNull();
   });
 
@@ -53,15 +51,13 @@ describe('perek header helpers', () => {
   });
 
   it('perekNameOnPage finds first whole alt', () => {
-    expect(
-      perekNameOnPage([null, null, { he: ['מאימתי'], whole: true }]),
-    ).toBe('מאימתי');
+    expect(perekNameOnPage([null, null, { he: ['מאימתי'], whole: true }])).toBe('מאימתי');
   });
 
   it('primaryPerekFromMishnaRefs picks earliest chapter', () => {
-    expect(
-      primaryPerekFromMishnaRefs(['Mishnah Bava Metzia 2:3', 'Mishnah Bava Metzia 1:1']),
-    ).toBe(1);
+    expect(primaryPerekFromMishnaRefs(['Mishnah Bava Metzia 2:3', 'Mishnah Bava Metzia 1:1'])).toBe(
+      1,
+    );
   });
 
   it('perekNamesToCache collects names for KV warm', () => {
@@ -73,9 +69,7 @@ describe('perek header helpers', () => {
   });
 
   it('formatPerekHeaderLine prefixes פרק', () => {
-    expect(formatPerekHeaderLine({ perekNum: 5, nameHe: 'איזהו נשך' })).toBe(
-      'פרק איזהו נשך',
-    );
+    expect(formatPerekHeaderLine({ perekNum: 5, nameHe: 'איזהו נשך' })).toBe('פרק איזהו נשך');
     expect(formatPerekHeaderLine({ perekNum: 3, nameHe: 'ג' })).toBe('פרק ג');
   });
 

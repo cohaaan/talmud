@@ -67,6 +67,7 @@ import { talmudParallelsToLinks, yerushalmiToLinks } from '../lib/context/parall
 import { type SectionExit, sectionExits } from '../lib/context/sectionExits';
 import { dafSpine } from '../lib/context/spine';
 import { spineLinks } from '../lib/context/spineLinks';
+import { normalizePageRef } from '../lib/daf-identity/page-ref';
 import { buildGeoModel, type GeoEnrichment, type RabbiGeoSource } from '../lib/geographyModel';
 import { buildCodificationChain, buildDerivation } from '../lib/halacha/codifiers';
 import { isNonSageTopic } from '../lib/nonSageTopics';
@@ -87,7 +88,6 @@ import { adjacentAmud, sefariaAPI, type TalmudPageData, TRACTATE_OPTIONS } from 
 import { isValidAmud, iterAmudim, TRACTATE_END_AMUD } from '../lib/sefref/amudim';
 import { getDafyomiMasechet } from '../lib/sefref/dafyomi/masechtos';
 import { fetchHebrewBooksDaf } from '../lib/sefref/hebrewbooks/client';
-import { normalizePageRef } from '../lib/daf-identity/page-ref';
 import { estimateShasCost } from '../lib/shasCost';
 import {
   type BridgeSection,
@@ -7983,13 +7983,7 @@ app.get('/api/daf/:tractate/:page', async (c) => {
   ]);
   setCacheHeader();
   if (!data) return c.json({ error: 'Sefaria fetch failed' }, 502);
-  const perekHeader = await resolvePerekHeaderForDaf(
-    cache,
-    tractate,
-    page,
-    segments,
-    mishnaBundle,
-  );
+  const perekHeader = await resolvePerekHeaderForDaf(cache, tractate, page, segments, mishnaBundle);
   return c.json({
     ...data,
     _source: 'sefaria',

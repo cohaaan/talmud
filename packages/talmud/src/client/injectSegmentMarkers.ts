@@ -19,8 +19,8 @@
  *     tolerant of gaps on either side.
  */
 
-import { abbreviationMatches } from '../lib/sefref/alignment/abbreviations';
 import { extractTalmudContent, normalizeHebrew, wordsMatchFuzzy } from '../lib/sefref/alignment';
+import { abbreviationMatches } from '../lib/sefref/alignment/abbreviations';
 
 export interface SegmentStats {
   totalSegments: number;

@@ -102,7 +102,7 @@ describe('abbreviationMatches — Shas verify edge cases', () => {
   it('collapsed סד → סלקא דעתך', () => {
     expect(abbreviationMatches('סד', ['סלקא', 'דעתך'], 0)).toBe(2);
   });
-  it('מד\' → מארבע', () => {
+  it("מד' → מארבע", () => {
     expect(abbreviationMatches("מד'", ['מארבע', 'שופכן'], 0)).toBe(1);
   });
   it('א"ל → אמר ליה', () => {

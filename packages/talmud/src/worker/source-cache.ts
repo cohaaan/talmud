@@ -30,6 +30,7 @@ import {
   type TalmudParallel,
   type YerushalmiBundle,
 } from '../lib/sefref';
+import type { DafyomiDaf } from '../lib/sefref/dafyomi/schema';
 import { sanitizeHebrewBooksColumn } from '../lib/sefref/hebrewbooks/client';
 import type { PerekAlt, PerekHeader } from '../lib/sefref/perek';
 import {
@@ -37,7 +38,6 @@ import {
   perekNamesToCache,
   resolveRunningPerekHeader,
 } from '../lib/sefref/perek';
-import type { DafyomiDaf } from '../lib/sefref/dafyomi/schema';
 import {
   keyForCodeSources,
   keyForDafTopics,
@@ -586,7 +586,7 @@ async function writePerekName(
 export async function resolvePerekHeaderForDaf(
   cache: KVNamespace | undefined,
   tractate: string,
-  page: string,
+  _page: string,
   segments: SefariaSegments | null,
   mishnaBundle: MishnaBundle,
 ): Promise<PerekHeader | null> {
@@ -598,9 +598,7 @@ export async function resolvePerekHeaderForDaf(
 
   const perekNums = [
     ...new Set(
-      mishnaRefs
-        .map((r) => parsePerekFromMishnaRef(r))
-        .filter((n): n is number => n != null),
+      mishnaRefs.map((r) => parsePerekFromMishnaRef(r)).filter((n): n is number => n != null),
     ),
   ];
   const cachedNameByPerek: Record<number, string> = {};

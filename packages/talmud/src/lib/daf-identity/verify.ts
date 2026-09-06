@@ -73,8 +73,7 @@ export function verifyDafIdentity(input: DafIdentityInput): DafIdentityResult {
 
   if (mainWords.length === 0) {
     const tosafotWords = extractWords(tosafot);
-    const commentaryOnly =
-      (input.mainSegmentsHe?.length ?? 0) === 0 && tosafotWords.length > 40;
+    const commentaryOnly = (input.mainSegmentsHe?.length ?? 0) === 0 && tosafotWords.length > 40;
     if (!commentaryOnly) {
       issues.push({
         level: 'error',

@@ -7,7 +7,7 @@
  *   node scripts/capture-daf-fixtures.mjs --tractate "Bava Metzia" --pages 2a --out src/fixtures/bava-metzia-2a-hb.json
  */
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,7 +19,12 @@ function slugify(tractate, page) {
 }
 
 function parseArgs(argv) {
-  const out = { tractate: 'Bava Metzia', pages: [], api: DEFAULT_API, outDir: join(__dirname, '../src/fixtures') };
+  const out = {
+    tractate: 'Bava Metzia',
+    pages: [],
+    api: DEFAULT_API,
+    outDir: join(__dirname, '../src/fixtures'),
+  };
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === '--tractate') out.tractate = argv[++i];
     else if (argv[i] === '--pages') out.pages = argv[++i].split(',').map((p) => p.trim());
@@ -55,7 +60,10 @@ for (const page of args.pages) {
     _source: j._source,
     mainSegmentsHe: j.mainSegmentsHe ?? [],
   };
-  const name = args.singleOut && args.pages.length === 1 ? args.singleOut : join(args.outDir, `${slugify(args.tractate, page)}.json`);
+  const name =
+    args.singleOut && args.pages.length === 1
+      ? args.singleOut
+      : join(args.outDir, `${slugify(args.tractate, page)}.json`);
   writeFileSync(name, `${JSON.stringify(fixture, null, 2)}\n`);
   console.log(`wrote ${name} (${fixture._source}, main ${fixture.mainText.hebrew.length} chars)`);
 }

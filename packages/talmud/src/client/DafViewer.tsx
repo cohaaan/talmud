@@ -10,17 +10,17 @@ import {
   Show,
 } from 'solid-js';
 import { dedupeBy, partitionSections } from '../lib/argumentMoves';
+import { normalizePageRef, parsePageRef } from '../lib/daf-identity/page-ref';
+import type { LayoutResult } from '../lib/daf-render';
 import { DafRenderer } from '../lib/daf-render';
 import {
   VILNA_FRAME_WIDTH,
   VILNA_MAIN_WIDTH,
   VILNA_TEXT_WIDTH,
 } from '../lib/daf-render/layout-constants';
-import type { LayoutResult } from '../lib/daf-render';
 import type { DafGeoModel } from '../lib/geographyModel';
 import type { TalmudPageData } from '../lib/sefref';
 import { clampAmud, dafRefHe, TRACTATE_OPTIONS } from '../lib/sefref';
-import { normalizePageRef, parsePageRef } from '../lib/daf-identity/page-ref';
 import { conceptToTerm, glossaryForDaf, type Term } from '../lib/terms/registry';
 import {
   ArgumentSidebar,
@@ -3851,11 +3851,26 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
                     const tokens = active ? t : otherSpreadTokens();
                     const perek = active ? daf()?.perekHeader : otherDaf()?.perekHeader;
                     return (
+                      /* biome-ignore lint/a11y/noStaticElementInteractions: inactive spread pane is a click target to switch amud; keyboard handled via onKeyDown */
                       <div
                         class="daf-spread__page"
                         classList={{ 'is-active': active }}
+                        {...(active
+                          ? {}
+                          : {
+                              role: 'button' as const,
+                              tabIndex: 0,
+                              'aria-label': `Switch to ${pageStr}`,
+                            })}
                         onClick={() => {
                           if (!active) go(pageStr);
+                        }}
+                        onKeyDown={(e) => {
+                          if (active) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            go(pageStr);
+                          }
                         }}
                       >
                         <Show
@@ -3870,7 +3885,9 @@ export default function DafViewer(props: DafViewerProps = {}): JSX.Element {
                         >
                           {(tok) => (
                             <div
-                              ref={active ? (setDafRootEl as (el: HTMLDivElement) => void) : undefined}
+                              ref={
+                                active ? (setDafRootEl as (el: HTMLDivElement) => void) : undefined
+                              }
                               style={scaleStyle}
                             >
                               <DafPageFrame

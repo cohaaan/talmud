@@ -1,4 +1,4 @@
-import { Show, type JSX } from 'solid-js';
+import { type JSX, Show } from 'solid-js';
 import type { Amud } from '../lib/daf-render/core/types';
 import { formatPerekHeaderLine, type PerekHeader } from '../lib/sefref/perek';
 import { pageLabelHe, tractateLabelHe } from '../lib/sefref/tractates';

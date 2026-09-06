@@ -50,9 +50,7 @@ describe('daf identity — Bava Metzia (frozen HB fixtures)', () => {
   it('2a opens with שנים (Eilu Metzios mishna body — אלו מציאות is the chapter name, not page text)', () => {
     const f = loadBm('2a');
     expect(firstWords(f.mainText.hebrew, 1)[0]).toMatch(/^שנ/i);
-    const segments = [
-      'שְׁנַיִם אוֹחֲזִין בְּטַלִּית, זֶה אוֹמֵר: ״אֲנִי מְצָאתִיהָ״, וְזֶה אוֹמֵר: ״אֲנִי מְצָאתִיהָ״.',
-    ];
+    const segments = ['שְׁנַיִם אוֹחֲזִין בְּטַלִּית, זֶה אוֹמֵר: ״אֲנִי מְצָאתִיהָ״, וְזֶה אוֹמֵר: ״אֲנִי מְצָאתִיהָ״.'];
     expect(mainOpensWithSegments(f.mainText.hebrew, segments, 2)).toBe(true);
   });
 

@@ -615,10 +615,9 @@ export async function computeCacheStats(cache: KVNamespace): Promise<CacheStats>
     pasukCount,
     rabbiEnrichedCount,
   ] = await Promise.all([
-    Promise.all([
-      countPrefix(cache, 'hb:v2:'),
-      countPrefix(cache, 'hb:v3:'),
-    ]).then(([v2, v3]) => v2 + v3),
+    Promise.all([countPrefix(cache, 'hb:v2:'), countPrefix(cache, 'hb:v3:')]).then(
+      ([v2, v3]) => v2 + v3,
+    ),
     countPrefix(cache, 'ctx:gemara:v1:'),
     countPrefix(cache, 'ctx:commentaries:v1:'),
     countPrefix(cache, 'dafyomi:v5:'),

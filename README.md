@@ -93,7 +93,7 @@ Open `http://localhost:5173/#daf` (or the port Vite prints). The daf sits inside
 | Text HTML | HebrewBooks scrape | Preserves `.gdropcap`, `.shastitle4`/`7`, `.five`, `.mareimakom`, `.ghadran` from the printed page markup |
 | Segmentation & English | Sefaria API | [CC-BY](https://www.sefaria.org/terms) |
 
-Tosafot uses the Rashi face at a slightly tighter size/rhythm to mirror print hierarchy. Cross-reference parentheticals (`.mareimakom`) render smaller and muted.
+Tosafot uses **Mekorot Vilna Italic** (outer column); Rashi stays on Mekorot Rashi. Cross-reference parentheticals (`.mareimakom`) render smaller and muted.
 
 ### Layout constants
 
@@ -105,7 +105,13 @@ Defined in `packages/talmud/src/lib/daf-render/layout-constants.ts`:
 
 ### Fidelity vs print / Mercava
 
-**In place:** three-column tzurat hadaf engine, amud-dependent float sides, Mekorot fonts, incipit drop cap, hadran blocks, Vilna page frame, Hebrew folio header.
+**In place:** three-column tzurat hadaf engine, amud-dependent float sides, Mekorot fonts (Tosafot in Vilna Italic), incipit drop cap, hadran blocks, Vilna page frame with Hebrew tractate header and running **perek** title (Sefaria chapter `alts`), marginal folio mark, optional desktop **Spread** view (ע״א | ע״ב side-by-side).
+
+**Still limited:**
+
+- Ein Mishpat / Mesorat HaShas **margin reference numbers** — Sefaria provides semantic links (`einMishpat`, Mesorat parallels) but not Vilna margin slot indices; see `packages/talmud/docs/MARGIN-APPARATUS.md`
+- Pixel-perfect match to a scanned Vilna PDF (line breaks differ by edition and viewport)
+- Or HaChaim margin numbers (same data gap as Ein Mishpat / Mesorat)
 
 ### Run the daf-identity check
 
@@ -124,17 +130,13 @@ pnpm --filter talmud verify:daf-identity -- --tractate Berakhot
 # Every tractate at 2a + 2b (74 amudim)
 pnpm --filter talmud verify:daf-identity:sample
 
+# Full Bavli Shas (5,375 amudim — run against prod or local worker)
+pnpm --filter talmud verify:daf-identity:shas
+
 # Sub-range
 node packages/talmud/scripts/verify-daf-identity.mjs --tractate Berakhot --from 2a --to 5b
 ```
 
 The check verifies: valid page ref, non-empty Gemara column, main ≠ commentary columns, HB main opening matches Sefaria segment 0, consecutive amudim differ (full-tractate mode).
 
-**Coverage limits:** Shekalim may fail Sefaria alignment (no Bavli text in Sefaria). The live script does not validate layout/CSS — only content identity. Full Shas live scan is intentionally manual (use `--tractate` per masekhet).
-
-
-- Ein Mishpat / Mesorat HaShas / Or HaChaim **margin reference numbers** (data not wired into layout)
-- Pixel-perfect match to a scanned Vilna PDF (line breaks differ by edition and viewport)
-- Running **perek** headers in the print style (chapter boundaries are marked via hadran, not full running heads)
-- Separate Tosafot **display typeface** (both commentaries share Mekorot Rashi; print editions differ more in size than face)
-- Full **folio back** (amud ב of a two-sided spread is rendered alone, as in most digital readers)
+**Coverage limits:** Shekalim may fail Sefaria alignment (no Bavli text in Sefaria). The live script does not validate layout/CSS — only content identity. Source KV ops (gdropcap sanitize, cache rewarm): `packages/talmud/docs/SOURCE-CACHE-REwarm.md`.

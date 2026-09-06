@@ -147,7 +147,7 @@ describe('layoutSageArcs — small networks', () => {
     // autoExpanded kicks in for tiny networks, so force-collapse comparison:
     // both have <= AUTO_EXPAND_MAX rows, so compare group geometry only for
     // larger synthetic sets.
-    const many = (gen: string) =>
+    const many = (_gen: string) =>
       Array.from({ length: 10 }, (_, i) => row(`m${i}`, 'amora-ey-2', i + 1));
     const bigA = layoutSageArcs('tanna-2', many('a'), null);
     const bigB = layoutSageArcs('amora-bavel-6', many('b'), null);

@@ -19,8 +19,6 @@ export interface PerekHeader {
   nameHe: string;
 }
 
-const FINAL_MAP: Record<string, string> = { ך: 'כ', ם: 'מ', ן: 'נ', ף: 'פ', ץ: 'צ' };
-
 const GEMATRIA_ONES = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
 const GEMATRIA_TENS = ['', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ'];
 
@@ -56,7 +54,9 @@ export function perekNameFromAlt(alt: PerekAlt | null | undefined): string | nul
 }
 
 /** First whole-chapter alt name on the daf (new perek may start mid-amud). */
-export function perekNameOnPage(alts: Array<PerekAlt | null | undefined> | undefined): string | null {
+export function perekNameOnPage(
+  alts: Array<PerekAlt | null | undefined> | undefined,
+): string | null {
   if (!alts) return null;
   for (const alt of alts) {
     const name = perekNameFromAlt(alt);
