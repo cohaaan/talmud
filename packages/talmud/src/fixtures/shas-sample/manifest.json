@@ -1,0 +1,212 @@
+[
+  {
+    "id": "berakhot-2a",
+    "tractate": "Berakhot",
+    "page": "2a",
+    "path": "shas-sample/berakhot-2a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "berakhot-33a",
+    "tractate": "Berakhot",
+    "page": "33a",
+    "path": "shas-sample/berakhot-33a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "berakhot-64a",
+    "tractate": "Berakhot",
+    "page": "64a",
+    "path": "shas-sample/berakhot-64a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "shabbat-2a",
+    "tractate": "Shabbat",
+    "page": "2a",
+    "path": "shas-sample/shabbat-2a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "shabbat-79b",
+    "tractate": "Shabbat",
+    "page": "79b",
+    "path": "shas-sample/shabbat-79b.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "shabbat-157b",
+    "tractate": "Shabbat",
+    "page": "157b",
+    "path": "shas-sample/shabbat-157b.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "pesachim-2a",
+    "tractate": "Pesachim",
+    "page": "2a",
+    "path": "shas-sample/pesachim-2a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "pesachim-61b",
+    "tractate": "Pesachim",
+    "page": "61b",
+    "path": "shas-sample/pesachim-61b.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "pesachim-121b",
+    "tractate": "Pesachim",
+    "page": "121b",
+    "path": "shas-sample/pesachim-121b.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "yoma-2a",
+    "tractate": "Yoma",
+    "page": "2a",
+    "path": "shas-sample/yoma-2a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "yoma-45a",
+    "tractate": "Yoma",
+    "page": "45a",
+    "path": "shas-sample/yoma-45a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "yoma-88a",
+    "tractate": "Yoma",
+    "page": "88a",
+    "path": "shas-sample/yoma-88a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "yevamot-2a",
+    "tractate": "Yevamot",
+    "page": "2a",
+    "path": "shas-sample/yevamot-2a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "yevamot-62a",
+    "tractate": "Yevamot",
+    "page": "62a",
+    "path": "shas-sample/yevamot-62a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "yevamot-122b",
+    "tractate": "Yevamot",
+    "page": "122b",
+    "path": "shas-sample/yevamot-122b.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "bava-metzia-2a",
+    "tractate": "Bava Metzia",
+    "page": "2a",
+    "path": "shas-sample/bava-metzia-2a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "bava-metzia-60b",
+    "tractate": "Bava Metzia",
+    "page": "60b",
+    "path": "shas-sample/bava-metzia-60b.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "bava-metzia-119a",
+    "tractate": "Bava Metzia",
+    "page": "119a",
+    "path": "shas-sample/bava-metzia-119a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "sanhedrin-2a",
+    "tractate": "Sanhedrin",
+    "page": "2a",
+    "path": "shas-sample/sanhedrin-2a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "sanhedrin-57b",
+    "tractate": "Sanhedrin",
+    "page": "57b",
+    "path": "shas-sample/sanhedrin-57b.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "sanhedrin-113b",
+    "tractate": "Sanhedrin",
+    "page": "113b",
+    "path": "shas-sample/sanhedrin-113b.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "chullin-2a",
+    "tractate": "Chullin",
+    "page": "2a",
+    "path": "shas-sample/chullin-2a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "chullin-72a",
+    "tractate": "Chullin",
+    "page": "72a",
+    "path": "shas-sample/chullin-72a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "chullin-142a",
+    "tractate": "Chullin",
+    "page": "142a",
+    "path": "shas-sample/chullin-142a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "gittin-2a",
+    "tractate": "Gittin",
+    "page": "2a",
+    "path": "shas-sample/gittin-2a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "gittin-46a",
+    "tractate": "Gittin",
+    "page": "46a",
+    "path": "shas-sample/gittin-46a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "gittin-90b",
+    "tractate": "Gittin",
+    "page": "90b",
+    "path": "shas-sample/gittin-90b.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "niddah-2a",
+    "tractate": "Niddah",
+    "page": "2a",
+    "path": "shas-sample/niddah-2a.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "niddah-37b",
+    "tractate": "Niddah",
+    "page": "37b",
+    "path": "shas-sample/niddah-37b.json",
+    "source": "hebrewbooks"
+  },
+  {
+    "id": "niddah-73a",
+    "tractate": "Niddah",
+    "page": "73a",
+    "path": "shas-sample/niddah-73a.json",
+    "source": "hebrewbooks"
+  }
+]

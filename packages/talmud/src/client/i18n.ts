@@ -117,6 +117,11 @@ const CATALOG = {
   'header.todaysDaf.finding': { en: 'Finding today’s daf…', he: 'מאתר את דף היום…' },
   'header.todaysDaf.title': { en: "Jump to today's Daf Yomi", he: 'מעבר לדף היומי של היום' },
   'header.amud.title': { en: 'Toggle amud (side)', he: 'החלפת עמוד (צד)' },
+  'header.spread': { en: 'Spread', he: 'פריסה' },
+  'header.spread.title': {
+    en: 'Two-page spread (ע״א | ע״ב) — desktop only',
+    he: 'פריסת שני עמודים (ע״א | ע״ב) — מחשב בלבד',
+  },
   'header.dev': { en: 'Inspect', he: 'בדיקה' },
   'header.dev.title': {
     en: 'Toggle the Inspect panel (build provenance · marks · checks)',

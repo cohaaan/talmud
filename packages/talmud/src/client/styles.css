@@ -15,6 +15,30 @@
 }
 
 @font-face {
+  font-family: "Mekorot Vilna";
+  src: url("/fonts/Mekorot-Vilna-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mekorot Vilna";
+  src: url("/fonts/Mekorot-Vilna-Bold-Italic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mekorot Vilna Italic";
+  src: url("/fonts/Mekorot-Vilna-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Mekorot Rashi";
   src: url("/fonts/Mekorot-Rashi.ttf") format("truetype");
   font-weight: 400;
@@ -23,12 +47,15 @@
 }
 
 :root {
-  --bg: #fafaf7;
+  --bg: #e8e4dc;
   --fg: #1a1a1a;
   --muted: #6b6b6b;
   --accent: #8a2a2b;
   --accent-strong: #6f2122;
   --line: #e5e3dc;
+  --daf-paper: #faf6ec;
+  --daf-paper-edge: #2a2520;
+  --daf-paper-shadow: rgba(42, 37, 32, 0.14);
 }
 
 * {
@@ -550,6 +577,156 @@ body.dev-panel-open .daf-page {
    in both languages (matching how English mode already renders correctly). */
 .daf-surface {
   direction: ltr;
+  padding: 0.75rem 0 1.25rem;
+}
+
+/* Printed Vilna folio silhouette — paper, rules, running header, marginal folio. */
+.daf-page-frame {
+  position: relative;
+  box-sizing: border-box;
+  width: 608px;
+  max-width: 100%;
+  margin: 0 auto;
+  background: var(--daf-paper);
+  border: 1px solid var(--daf-paper-edge);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.65) inset,
+    0 2px 0 var(--daf-paper-edge),
+    0 8px 28px var(--daf-paper-shadow),
+    0 2px 6px rgba(42, 37, 32, 0.08);
+  padding: 0.55rem 0.35rem 0.65rem;
+}
+
+.daf-page-frame__rule {
+  height: 1px;
+  margin: 0 0.65rem;
+  background: var(--daf-paper-edge);
+  opacity: 0.35;
+}
+.daf-page-frame__rule--top {
+  margin-bottom: 0.45rem;
+}
+.daf-page-frame__rule--bottom {
+  margin-top: 0.5rem;
+}
+
+.daf-page-frame__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 0.15rem 2.5rem 0.5rem;
+  border-bottom: 1px solid rgba(42, 37, 32, 0.12);
+  margin-bottom: 0.35rem;
+  direction: rtl;
+}
+
+.daf-page-frame__tractate {
+  font-family: "Mekorot Vilna", "Frank Ruhl Libre", "Times New Roman", serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--daf-paper-edge);
+}
+
+.daf-page-frame__perek {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: "Mekorot Vilna", "Frank Ruhl Libre", "Times New Roman", serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--daf-paper-edge);
+  opacity: 0.88;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.daf-page-frame__amud {
+  font-family: "Mekorot Vilna", "Frank Ruhl Libre", serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.daf-page-frame__body {
+  display: flex;
+  align-items: flex-start;
+  direction: rtl;
+  padding: 0 0.15rem;
+}
+
+.daf-page-frame__folio {
+  flex: 0 0 1.65rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.15rem;
+  min-height: 1px;
+}
+
+.daf-page-frame__folio-num {
+  font-family: "Mekorot Vilna", "Frank Ruhl Libre", serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--daf-paper-edge);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.04em;
+}
+
+.daf-page-frame__content {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+}
+
+@media (max-width: 767px) {
+  .daf-page-frame {
+    width: 560px;
+    padding: 0.45rem 0.25rem 0.55rem;
+  }
+  .daf-page-frame__header {
+    padding-inline: 1.75rem;
+  }
+  .daf-page-frame__perek {
+    font-size: 0.82rem;
+  }
+}
+
+/* Desktop two-page spread: ע״א on the right, ע״ב on the left (open-book RTL). */
+.daf-spread {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.75rem;
+  direction: rtl;
+}
+.daf-spread__page {
+  flex: 0 0 auto;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.daf-spread__page:not(.is-active) {
+  opacity: 0.72;
+}
+.daf-spread__page:not(.is-active):hover {
+  opacity: 0.9;
+}
+.daf-spread__page.is-active {
+  cursor: default;
+}
+.daf-spread__loading {
+  width: 608px;
+  max-width: 100%;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
 }
 
 @media (max-width: 767px) {
@@ -651,7 +828,7 @@ body.dev-panel-open .daf-page {
     padding: 0 12px;
   }
   /* Native pan + pinch-zoom on the daf container regardless of mode. The
-     traditional Tzurat HaDaf renders at full 520px width on phones (the
+     traditional Tzurat HaDaf renders at full VILNA_TEXT_WIDTH width on phones (the
      layout is sacred — see DafViewer dafWidth), so the surface scrolls
      horizontally when the viewport is narrower. Multi-word translation uses
      explicit tap-to-extend (Translate mode), not native selection handles. */

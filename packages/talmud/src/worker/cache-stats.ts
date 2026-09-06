@@ -615,7 +615,9 @@ export async function computeCacheStats(cache: KVNamespace): Promise<CacheStats>
     pasukCount,
     rabbiEnrichedCount,
   ] = await Promise.all([
-    countPrefix(cache, 'hb:v2:'),
+    Promise.all([countPrefix(cache, 'hb:v2:'), countPrefix(cache, 'hb:v3:')]).then(
+      ([v2, v3]) => v2 + v3,
+    ),
     countPrefix(cache, 'ctx:gemara:v1:'),
     countPrefix(cache, 'ctx:commentaries:v1:'),
     countPrefix(cache, 'dafyomi:v5:'),
@@ -646,7 +648,11 @@ export async function computeCacheStats(cache: KVNamespace): Promise<CacheStats>
   // running all of them in one Promise.all held ~3000 values simultaneously —
   // the peak that OOM'd 128 MB isolates and left this scan failing for days.
   // Sequential samples + sub-batched reads bound the peak to one small batch.
-  const hbAligned = await sampleAligned(cache, 'hb:v2:', alignedHebrewBooks);
+  const hbAlignedV3 = await sampleAligned(cache, 'hb:v3:', alignedHebrewBooks);
+  const hbAligned =
+    hbAlignedV3 != null && hbAlignedV3.sampled > 0
+      ? hbAlignedV3
+      : await sampleAligned(cache, 'hb:v2:', alignedHebrewBooks);
   const gemaraAligned = await sampleAligned(cache, 'ctx:gemara:v1:', alignedGemara);
   const commentariesAligned = await sampleAligned(
     cache,

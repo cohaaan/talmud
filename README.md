@@ -70,3 +70,73 @@ pnpm build
 ```
 
 Production deploys automatically after a change is merged to `master` and passes CI.
+
+## Vilna daf layout
+
+The reader renders each amud as a **Tzurat HaDaf** page — Gemara in the center, Rashi and Tosafot in the side columns, with commentary wrapping around the main text the way a printed Vilna folio does.
+
+### Preview locally
+
+```bash
+pnpm exec wrangler login   # once, for remote dev bindings
+pnpm dev                   # opens the Talmud reader (default daf: Berakhot 2a)
+```
+
+Open `http://localhost:5173/#daf` (or the port Vite prints). The daf sits inside a **printed-page frame** (cream paper, double rule, Hebrew tractate header, marginal folio mark). Study aids (gutter icons, sidebar cards, highlights) float beside or over the page without breaking the silhouette.
+
+### Typography & fonts
+
+| Role | Font | Source |
+| --- | --- | --- |
+| Gemara (center) | Mekorot Vilna | [Mekorot](https://hebrewbooks.org/) digitization of the Vilna Shas typeface (bundled under `packages/talmud/static/fonts/`) |
+| Rashi / Tosafot | Mekorot Rashi | same project |
+| Text HTML | HebrewBooks scrape | Preserves `.gdropcap`, `.shastitle4`/`7`, `.five`, `.mareimakom`, `.ghadran` from the printed page markup |
+| Segmentation & English | Sefaria API | [CC-BY](https://www.sefaria.org/terms) |
+
+Tosafot uses **Mekorot Vilna Italic** (outer column); Rashi stays on Mekorot Rashi. Cross-reference parentheticals (`.mareimakom`) render smaller and muted.
+
+### Layout constants
+
+Defined in `packages/talmud/src/lib/daf-render/layout-constants.ts`:
+
+- **560px** text block width (`VILNA_TEXT_WIDTH`) — closer to a folio text area than the previous 520px cap
+- **47%** center column (`VILNA_MAIN_WIDTH`) — classic Vilna proportions
+- RTL throughout the daf surface; the frame and app chrome respect UI language direction separately
+
+### Fidelity vs print / Mercava
+
+**In place:** three-column tzurat hadaf engine, amud-dependent float sides, Mekorot fonts (Tosafot in Vilna Italic), incipit drop cap, hadran blocks, Vilna page frame with Hebrew tractate header and running **perek** title (Sefaria chapter `alts`), marginal folio mark, optional desktop **Spread** view (ע״א | ע״ב side-by-side).
+
+**Still limited:**
+
+- Ein Mishpat / Mesorat HaShas **margin reference numbers** — Sefaria provides semantic links (`einMishpat`, Mesorat parallels) but not Vilna margin slot indices; see `packages/talmud/docs/MARGIN-APPARATUS.md`
+- Pixel-perfect match to a scanned Vilna PDF (line breaks differ by edition and viewport)
+- Or HaChaim margin numbers (same data gap as Ein Mishpat / Mesorat)
+
+### Run the daf-identity check
+
+Unit tests (fixtures + normalization, no network):
+
+```bash
+pnpm --filter talmud test tests/daf-identity.test.ts
+```
+
+Live cross-source verification against HebrewBooks + Sefaria (network):
+
+```bash
+# Entire Berakhot (127 amudim — ~15s with rate limiting)
+pnpm --filter talmud verify:daf-identity -- --tractate Berakhot
+
+# Every tractate at 2a + 2b (74 amudim)
+pnpm --filter talmud verify:daf-identity:sample
+
+# Full Bavli Shas (5,375 amudim — run against prod or local worker)
+pnpm --filter talmud verify:daf-identity:shas
+
+# Sub-range
+node packages/talmud/scripts/verify-daf-identity.mjs --tractate Berakhot --from 2a --to 5b
+```
+
+The check verifies: valid page ref, non-empty Gemara column, main ≠ commentary columns, HB main opening matches Sefaria segment 0, consecutive amudim differ (full-tractate mode).
+
+**Coverage limits:** Shekalim may fail Sefaria alignment (no Bavli text in Sefaria). The live script does not validate layout/CSS — only content identity. Source KV ops (gdropcap sanitize, cache rewarm): `packages/talmud/docs/SOURCE-CACHE-REwarm.md`.

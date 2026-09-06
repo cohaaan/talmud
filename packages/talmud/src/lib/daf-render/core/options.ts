@@ -10,14 +10,14 @@ export interface DafOptions {
 }
 
 export const defaultOptions: DafOptions = {
-  contentWidth: 720,
-  mainWidth: 0.48,
-  padding: { vertical: 10, horizontal: 16 },
+  contentWidth: 560,
+  mainWidth: 0.47,
+  padding: { vertical: 8, horizontal: 14 },
   halfway: 0.5,
-  fontFamily: { main: 'Mekorot Vilna', inner: 'Mekorot Rashi', outer: 'Mekorot Rashi' },
+  fontFamily: { main: 'Mekorot Vilna', inner: 'Mekorot Rashi', outer: 'Mekorot Vilna Italic' },
   direction: 'rtl',
-  fontSize: { main: 15, side: 10.5 },
-  lineHeight: { main: 17, side: 14 },
+  fontSize: { main: 16, side: 11 },
+  lineHeight: { main: 18, side: 14.5 },
 };
 
 export type PartialDafOptions = {

@@ -91,3 +91,30 @@ describe('abbreviationMatches — existing expansions still work', () => {
     expect(abbreviationMatches('קטנה', ['קטנה'], 0)).toBe(0);
   });
 });
+
+describe('abbreviationMatches — Shas verify edge cases', () => {
+  it('קמ"ל → קא משמע לן', () => {
+    expect(abbreviationMatches('קמ"ל', ['קא', 'משמע', 'לן', 'דניסן'], 0)).toBe(3);
+  });
+  it('ס"ד → סלקא דעתך via generic acronym', () => {
+    expect(abbreviationMatches('ס"ד', ['סלקא', 'דעתך', 'מחזיר'], 0)).toBe(2);
+  });
+  it('collapsed סד → סלקא דעתך', () => {
+    expect(abbreviationMatches('סד', ['סלקא', 'דעתך'], 0)).toBe(2);
+  });
+  it("מד' → מארבע", () => {
+    expect(abbreviationMatches("מד'", ['מארבע', 'שופכן'], 0)).toBe(1);
+  });
+  it('א"ל → אמר ליה', () => {
+    expect(abbreviationMatches('א"ל', ['אמר', 'ליה', 'סודני'], 0)).toBe(2);
+  });
+  it('ר"ל → ריש', () => {
+    expect(abbreviationMatches('ר"ל', ['ריש', 'לקיש'], 0)).toBe(1);
+  });
+  it('אע"ג → אף על גב', () => {
+    expect(abbreviationMatches('אע"ג', ['אף', 'על', 'גב'], 0)).toBe(3);
+  });
+  it('אריב"ל → אמר רבי יהושע', () => {
+    expect(abbreviationMatches('אריב"ל', ['אמר', 'רבי', 'יהושע', 'בן', 'לוי'], 0)).toBe(5);
+  });
+});

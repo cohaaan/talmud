@@ -12,6 +12,7 @@ import {
   keyForMesorah,
   keyForMishnaBundle,
   keyForPasuk,
+  keyForPerekName,
   keyForRabbiAcademyRoster,
   keyForRabbiBioBySlug,
   keyForRabbiBioOnDaf,
@@ -50,9 +51,9 @@ describe('source-cache keys — byte-exact contract', () => {
   const t = 'Berakhot',
     p = '2a';
   it('reproduces every key exactly, raw tractate:page (no slug)', () => {
-    expect(keyForHebrewBooks(t, p)).toBe('hb:v2:Berakhot:2a');
+    expect(keyForHebrewBooks(t, p)).toBe('hb:v3:Berakhot:2a');
     expect(keyForSefariaBundle(t, p)).toBe('sefaria-bundle:v5:Berakhot:2a');
-    expect(keyForSefariaSegments(t, p)).toBe('sefaria-seg:v1:Berakhot:2a');
+    expect(keyForSefariaSegments(t, p)).toBe('sefaria-seg:v2:Berakhot:2a');
     expect(keyForRishonim(t, p)).toBe('rishonim:v4:Berakhot:2a');
     expect(keyForHalachaRefs(t, p)).toBe('halacha-refs:v3:Berakhot:2a');
     expect(keyForDafTopics(t, p)).toBe('daf-topics:v1:Berakhot:2a');
@@ -60,6 +61,7 @@ describe('source-cache keys — byte-exact contract', () => {
     expect(keyForYerushalmi(t, p)).toBe('yerushalmi:v1:Berakhot:2a');
     expect(keyForTalmudParallels(t, p)).toBe('talmud-parallels:v1:Berakhot:2a');
     expect(keyForSaCommentary('Mishnah_Berurah_1:1')).toBe('sa-commentary:v1:Mishnah_Berurah_1:1');
+    expect(keyForPerekName('Berakhot', 3)).toBe('perek-name:v1:Berakhot:3');
   });
   it('keeps a space/upper-case tractate in the key verbatim (the cold-miss trap)', () => {
     expect(keyForSefariaBundle('Bava Kamma', '2a')).toBe('sefaria-bundle:v5:Bava Kamma:2a');

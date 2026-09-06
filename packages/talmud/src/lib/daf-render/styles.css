@@ -181,8 +181,49 @@
 .daf-root .daf-text .shastitle7 {
   font-weight: bold;
 }
+/* Gemara-column sugya opener (גמ') — bold inline, slightly smaller than body. */
+.daf-root .daf-main .daf-text .shastitle4 {
+  font-weight: 700;
+  font-size: 0.92em;
+}
 .daf-root .daf-text .five {
   font-weight: bold;
+}
+/* Cross-ref parentheticals in commentary, e.g. (שבת ד' ו:). */
+.daf-root .daf-text .mareimakom {
+  font-size: 0.88em;
+  opacity: 0.82;
+  white-space: nowrap;
+}
+/* HebrewBooks chapter-closing block (parallel to injectHadran's .daf-hadran). */
+.daf-root .daf-text .ghadran {
+  display: block;
+  font-size: 1.15em;
+  text-align: center;
+  text-align-last: center;
+  font-weight: 600;
+  margin: 0.55em 0;
+}
+/* Tosafot outer column: Vilna italic face (printed Tosafot uses a distinct
+   hand from Rashi); slightly tighter rhythm than inner Rashi. */
+.daf-root .daf-outer .daf-text {
+  font-size: calc(var(--daf-font-size-side) * 0.96);
+  line-height: calc(var(--daf-line-height-side) * 0.97);
+  letter-spacing: 0.005em;
+}
+/* Rashi lemmas (shastitle7) vs body (.five) — match printed weight contrast. */
+.daf-root .daf-inner .daf-text .shastitle7 {
+  font-weight: 700;
+}
+.daf-root .daf-inner .daf-text .five {
+  font-weight: 400;
+}
+.daf-root .daf-outer .daf-text .shastitle7 {
+  font-weight: 700;
+  font-style: normal;
+}
+.daf-root .daf-outer .daf-text .five {
+  font-weight: 400;
 }
 
 /* Some Sefaria commentary pieces (e.g. Rashi on Eruvin 102a) embed the printed
